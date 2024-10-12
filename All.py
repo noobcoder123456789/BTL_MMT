@@ -13,87 +13,105 @@ class Peer:
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.connections = []
 
-    def connect(self, peer_host, peer_port):
-        # print(f"My host: {self.host}")
-        connection = socket.create_connection((peer_host, peer_port))
+    def fileBreak():    
+        fileR = open("./Original_File/a.pdf", "rb")
 
-        self.connections.append(connection)
-        print(f"Connected to {peer_host}:{peer_port}")
+        chunk = 0
+        byte = fileR.read(chunk_SIZE)
+        while byte:
+            if chunk == 0:
+                print(byte)
+            
+            fileT = open("./Splitted_File/chunk" + str(chunk) + ".txt", "wb")
+            fileT.write(byte)
+            fileT.close()
+            byte = fileR.read(chunk_SIZE)
+            chunk += 1
 
-    def listen(self):
-        self.socket.bind((self.host, self.port))
-        self.socket.listen(10)
-        print(f"Listening for connections on {self.host}:{self.port}")
+    def fileMake():
+        SplitNum = 0    
+        dir_path = r'./Splitted_File'
+        fileM = open("./Original_File/aCopy.pdf", "wb")    
+        for path in os.listdir(dir_path):
+            SplitNum += os.path.isfile(os.path.join(dir_path, path)) is True
 
+        for chunk in range(SplitNum):
+            fileT = open("./Splitted_File/chunk" + str(chunk) + ".txt", "rb")
+            byte = fileT.read(chunk_SIZE)
+            fileM.write(byte)
+
+        fileM.close()
+
+    def uploadFile():
+        with st.form("extended_form"):
+            uploaded_file = st.file_uploader("Choose Upload File")
+            submit_button = st.form_submit_button("Submit")
+        
+        if submit_button and uploaded_file is not None:
+            fileUp = open("./Uploaded_File/" + str(uploaded_file.name), "wb")
+            fileUp.write(uploaded_file.read())
+
+    def Client(serverIP, startChunk, endChunk, serverPort):    
+        clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        clientSocket.connect((serverIP, serverPort))
+        request = "Request for chunk from Peer"
+        print(request)
+
+        clientSocket.send(request.encode('utf-8'))
+        request = clientSocket.recv(1024).decode('utf-8')
+        clientSocket.send(str(startChunk).encode('utf-8'))
+        clientSocket.send(str(endChunk).encode('utf-8'))
+
+        for chunk in range(startChunk, endChunk + 1):
+            data = clientSocket.recv(chunk_SIZE)
+            fileT = open("./Chunk_List/chunk" + str(chunk) + ".txt", "wb")
+            fileT.write(data)
+            fileT.close()
+        clientSocket.close()
+
+        clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        clientSocket.connect((serverIP, serverPort))
+        request = "Client had been successully received all file"
+        clientSocket.send(request.encode('utf-8'))
+        print(clientSocket.recv(1024).decode('utf-8'))
+        clientSocket.close()
+
+    def Server(peerPort, peerNum):
+        serverPort = peerPort
+        serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        serverSocket.bind(("",serverPort))
+        serverSocket.listen(1)
+        print("The Peer" + str(peerNum) + " is ready to send file")
+        
         while True:
-            connection, address = self.socket.accept()
-            self.connections.append(connection)
-            print(f"Accepted connection from {address}")
-            threading.Thread(target=self.handle_client, args=(connection, address)).start()
-
-    def send_data(self, data):
-        for connection in self.connections:
-            try:
-                connection.sendall(data.encode())
-            except socket.error as e:
-                print(f"Failed to send data. Error: {e}")
-                self.connections.remove(connection)
-
-    def handle_client(self, connection, address):
-        while True:
-            try:
-                data = connection.recv(1024)
-                if not data:
-                    break
-                print(f"Received data from {address}: {data.decode()}")
-            except socket.error:
+            connectionSocket, addr = serverSocket.accept()    
+            request = connectionSocket.recv(1024).decode('utf-8')
+            
+            if request == "Request for chunk from Peer":                    
+                startChunk = "Start"
+                connectionSocket.send(startChunk.encode('utf-8')) 
+                startChunk = int(connectionSocket.recv(1024).decode('utf-8'))
+                        
+                endChunk = "End"
+                connectionSocket.send(endChunk.encode('utf-8'))  
+                endChunk = int(connectionSocket.recv(1024).decode('utf-8'))
+                
+                for chunk in range(startChunk, endChunk + 1):  
+                    fileT = open("./Splitted_File/chunk" + str(chunk) + ".txt", "rb")
+                    data = fileT.read(chunk_SIZE)      
+                    connectionSocket.sendall(data)              
+                connectionSocket.close()
+            
+            elif request == "Client had been successully received all file":            
+                print(request + "from Peer" + str(peerNum))
+                success = "All chunk are received from Peer" + str(peerNum)
+                connectionSocket.send(success.encode('utf-8'))
+                connectionSocket.close()
+                serverSocket.close()            
+                print("Peer" + str(peerNum) + " has successully sent all file")
+                print("Peer" + str(peerNum) + "'s TCP connection close.")
                 break
 
-        print(f"Connection from {address} closed.")
-        self.connections.remove(connection)
-        connection.close()
-
-    def start(self):
-        listen_thread = threading.Thread(target=self.listen)
-        listen_thread.start()
-
-def fileBreak():    
-    fileR = open("./Original_File/a.pdf", "rb")
-
-    chunk = 0
-    byte = fileR.read(chunk_SIZE)
-    while byte:
-        if chunk == 0:
-            print(byte)
-        
-        fileT = open("./Splitted_File/chunk" + str(chunk) + ".txt", "wb")
-        fileT.write(byte)
-        fileT.close()
-        byte = fileR.read(chunk_SIZE)
-        chunk += 1
-
-def fileMake():
-    SplitNum = 0    
-    dir_path = r'./Splitted_File'
-    fileM = open("./Original_File/aCopy.pdf", "wb")    
-    for path in os.listdir(dir_path):
-        SplitNum += os.path.isfile(os.path.join(dir_path, path)) is True
-
-    for chunk in range(SplitNum):
-        fileT = open("./Splitted_File/chunk" + str(chunk) + ".txt", "rb")
-        byte = fileT.read(chunk_SIZE)
-        fileM.write(byte)
-
-    fileM.close()
-
-def uploadFile():
-    with st.form("extended_form"):
-        uploaded_file = st.file_uploader("Choose Upload File")
-        submit_button = st.form_submit_button("Submit")
-    
-    if submit_button and uploaded_file is not None:
-        fileUp = open("./Uploaded_File/" + str(uploaded_file.name), "wb")
-        fileUp.write(uploaded_file.read())
 
 # Example usage:
 if __name__ == "__main__":
