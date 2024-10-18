@@ -1,3 +1,4 @@
+import time
 import socket
 import threading
 
@@ -26,8 +27,9 @@ class Peer:
                 
                 for chunk in range(startChunk, endChunk + 1):  
                     fileT = open("./Splitted_File/chunk" + str(chunk) + ".txt", "rb")
-                    data = fileT.read(chunk_SIZE)      
-                    connectionSocket.sendall(data)              
+                    print("Send chunk" + str(chunk) + ".txt")
+                    data = fileT.read(chunk_SIZE)
+                    connectionSocket.sendall(data)
                 connectionSocket.close()
             
             elif request == "Client had been successully received all file":            
