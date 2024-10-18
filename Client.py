@@ -1,5 +1,9 @@
-import socket
 import os
+import sys
+import time
+import socket
+import threading
+import multiprocessing
 
 chunk_SIZE = 512 * 1024
 
@@ -10,7 +14,7 @@ class Client():
         self.local_path = local_path
         os.system("mkdir " + str(local_path) + " && cd " + str(local_path) + " && mkdir Chunk_List")
 
-    def Client(self, serverIP, startChunk, endChunk, serverPort):   
+    def Client(self, serverIP, startChunk, endChunk, serverPort, peerID):   
         def recv_all(sock, size):
             data = b''
             while len(data) < size:
@@ -19,11 +23,19 @@ class Client():
                     break
                 data += packet
             return data
+
+        def progress_bar(current, total, bar_length=50):
+            progress = current / total
+            block = int(bar_length * progress)
+            bar = "#" * block + "-" * (bar_length - block)
+            percent = round(progress * 100, 2)
+            sys.stdout.write(f"\rDownloading: [{bar}] {percent}%")
+            sys.stdout.flush()
          
         clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         clientSocket.connect((serverIP, serverPort))
         request = "Request for chunk from Peer"
-        print("Client:", request)
+        # print("Client:", request)
 
         clientSocket.send(request.encode('utf-8'))
         request = clientSocket.recv(1024).decode('utf-8')
@@ -31,11 +43,15 @@ class Client():
         request = clientSocket.recv(1024).decode('utf-8')
         clientSocket.send(str(endChunk).encode('utf-8'))
 
+        print("Receiving chunk from Peer" + str(peerID), end='', flush=True)
         for chunk in range(startChunk, endChunk + 1):
+            # print('.', end='', flush=True)
+            progress_bar(chunk - startChunk + 1, endChunk - startChunk + 1)
             data = recv_all(clientSocket, chunk_SIZE)
             fileT = open("./" + str(self.local_path) + "/Chunk_List/chunk" + str(chunk) + ".txt", "wb")
             fileT.write(data)
             fileT.close()
+        print('')
         clientSocket.close()
 
         clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -51,7 +67,7 @@ class Client():
         for path in os.listdir(dir_path):
             SplitNum += os.path.isfile(os.path.join(dir_path, path)) is True
 
-        fileM = open("./" + str(self.local_path) + "/" + str(file_name), "wb")
+        fileM = open("./" + str(self.local_path) + "/" + str(file_name), "wb")        
         for chunk in range(SplitNum):
             fileT = open(str(dir_path) + "/chunk" + str(chunk) + ".txt", "rb")
             byte = fileT.read(chunk_SIZE)
@@ -61,15 +77,14 @@ class Client():
         print("Client: Merge all chunk completely")
 
     def Client_Process(self, fileName, peerNum, serverIP, serverPort, chunkNum):
-        self.local_path = "Local_Client"
-        os.system("mkdir Local_Client && cd Local_Client && mkdir Chunk_List")
+        os.system('cmd /c "mkdir Local_Client & cd Local_Client & mkdir Chunk_List"')
         chunkForEachPeer = chunkNum // peerNum
         startChunk = 0
         threads = []
         for i in range(1, peerNum + 1):
             endChunk = (chunkNum - 1) if i == peerNum else (startChunk + chunkForEachPeer - 1)
             print("Client: Request chunk" + str(startChunk) + " to chunk" + str(endChunk) + " from Peer" + str(i))
-            thread = threading.Thread(target=Client.Client, args=(self, serverIP, startChunk, endChunk, serverPort + i))
+            thread = threading.Thread(target=Client.Client, args=(self, serverIP[i - 1], startChunk, endChunk, serverPort[i - 1], i))
             threads.append(thread)
             startChunk = endChunk + 1
             thread.start()
@@ -78,3 +93,19 @@ class Client():
             thread.join()
         
         Client.file_make(self, fileName)
+
+peerNum = 1 # OUTPUT của phần tracker
+fileName = "a.pdf" # OUTPUT của phần tracker
+serverName = ["192.168.1.13"] # OUTPUT của phần tracker
+serverPort = [12000]
+clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+clientSocket.connect((serverName[0], serverPort[0]))
+clientSocket.send(fileName.encode('utf-8'))
+chunkNum = int(clientSocket.recv(1024).decode('utf-8'))
+print("The number of chunk:", chunkNum)
+clientSocket.close()
+client = Client("172.0.0.1", serverPort[0], "Local_Client")
+client.Client_Process(fileName, peerNum, serverName, serverPort, chunkNum)
+# process = multiprocessing.Process(target=client.Client_Process, args=(fileName, peerNum, serverName, serverPort, chunkNum))
+# process.start()
+# process.join()
