@@ -1,71 +1,62 @@
-import os
 import socket
 import threading
-import streamlit as st
 
-class Peer:
-    def __init__(self, host, port):
+chunk_SIZE = 512 * 1024
+
+class Peer():
+    def __init__(self, host, port, peerNum, local_path):
         self.host = host
         self.port = port
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.connections = []
-
-    def connect(self, peer_host, peer_port):
-        # print(f"My host: {self.host}")
-        connection = socket.create_connection((peer_host, peer_port))
-
-        self.connections.append(connection)
-        print(f"Connected to {peer_host}:{peer_port}")
-
-    def listen(self):
-        self.socket.bind((self.host, self.port))
-        self.socket.listen(10)
-        print(f"Listening for connections on {self.host}:{self.port}")
-
+        self.peerNum = peerNum
+        self.local_path = local_path
+    
+    def Server(self):
+        serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        serverSocket.bind(("", self.port))
+        serverSocket.listen(1)
+        print("Peer" + str(self.peerNum) + ":", "The Peer" + str(self.peerNum) + " is ready to send file")
+        
         while True:
-            connection, address = self.socket.accept()
-            self.connections.append(connection)
-            print(f"Accepted connection from {address}")
-            threading.Thread(target=self.handle_client, args=(connection, address)).start()
-
-    def send_data(self, data):
-        for connection in self.connections:
-            try:
-                connection.sendall(data.encode())
-            except socket.error as e:
-                print(f"Failed to send data. Error: {e}")
-                self.connections.remove(connection)
-
-    def handle_client(self, connection, address):
-        while True:
-            try:
-                data = connection.recv(1024)
-                if not data:
-                    break
-                print(f"Received data from {address}: {data.decode()}")
-            except socket.error:
+            connectionSocket, addr = serverSocket.accept()    
+            request = connectionSocket.recv(1024).decode('utf-8')
+            
+            if request == "Request for chunk from Peer":                    
+                startChunk = "Start"
+                connectionSocket.send(startChunk.encode('utf-8')) 
+                startChunk = int(connectionSocket.recv(1024).decode('utf-8'))
+                        
+                endChunk = "End"
+                connectionSocket.send(endChunk.encode('utf-8'))  
+                endChunk = int(connectionSocket.recv(1024).decode('utf-8'))
+                
+                for chunk in range(startChunk, endChunk + 1):  
+                    fileT = open("./" + str(self.local_path) + "/Chunk_List/chunk" + str(chunk) + ".txt", "rb")
+                    data = fileT.read(chunk_SIZE)      
+                    connectionSocket.sendall(data)              
+                connectionSocket.close()
+            
+            elif request == "Client had been successully received all file":            
+                print("Peer" + str(self.peerNum) + ":", request + "from Peer" + str(self.peerNum))
+                success = "All chunk are received from Peer" + str(self.peerNum)
+                connectionSocket.send(success.encode('utf-8'))
+                connectionSocket.close()
+                serverSocket.close()            
+                print("Peer" + str(self.peerNum) + ":", "Peer" + str(self.peerNum) + " has successully sent all file")
+                print("Peer" + str(self.peerNum) + ":", "Peer" + str(self.peerNum) + "'s TCP connection close.")
                 break
 
-        print(f"Connection from {address} closed.")
-        self.connections.remove(connection)
-        connection.close()
+    def file_break(self, file_name):
+        fileR = open("./" + str(self.local_path) + "/" + str(file_name), "rb")
+
+        chunk = 0
+        byte = fileR.read(chunk_SIZE)
+        while byte:
+            fileT = open("./" + str(self.local_path) + "/Chunk_List/chunk" + str(chunk) + ".txt", "wb")
+            fileT.write(byte)
+            fileT.close()
+            byte = fileR.read(chunk_SIZE)
+            chunk += 1
 
     def start(self):
-        listen_thread = threading.Thread(target=self.listen)
-        listen_thread.start()
-
-# Example usage:
-if __name__ == "__main__":
-    node1 = Peer("127.0.0.1", 8000)
-    node1.start()
-
-    node2 = Peer("127.0.0.1", 8001)
-    node2.start()
-
-    # Give some time for nodes to start listening
-    import time
-    time.sleep(2)
-
-    node2.connect("127.0.0.1", 8000)
-    time.sleep(1)  # Allow connection to establish    
-    node2.send_data("Hello from node2")
+        thread = threading.Thread(target=Peer.Server, args=(self,))
+        thread.start()
