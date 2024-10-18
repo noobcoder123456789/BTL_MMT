@@ -43,7 +43,6 @@ class Client():
         request = clientSocket.recv(1024).decode('utf-8')
         clientSocket.send(str(endChunk).encode('utf-8'))
 
-        print("Receiving chunk from Peer" + str(peerID), end='', flush=True)
         for chunk in range(startChunk, endChunk + 1):
             # print('.', end='', flush=True)
             progress_bar(chunk - startChunk + 1, endChunk - startChunk + 1)
@@ -94,16 +93,19 @@ class Client():
         
         Client.file_make(self, fileName)
 
-peerNum = 1 # OUTPUT của phần tracker
+peerNum = 2 # OUTPUT của phần tracker
 fileName = "a.pdf" # OUTPUT của phần tracker
-serverName = ["192.168.1.13"] # OUTPUT của phần tracker
-serverPort = [12000]
-clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-clientSocket.connect((serverName[0], serverPort[0]))
-clientSocket.send(fileName.encode('utf-8'))
-chunkNum = int(clientSocket.recv(1024).decode('utf-8'))
+serverName = ["192.168.1.13", "192.168.88.130"] # OUTPUT của phần tracker
+serverPort = [12000, 12001]
+chunkNum = 0
+for i in range(peerNum):
+    clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    clientSocket.connect((serverName[i], serverPort[i]))
+    clientSocket.send(fileName.encode('utf-8'))
+    chunkNum = int(clientSocket.recv(1024).decode('utf-8'))    
+    clientSocket.close()
+
 print("The number of chunk:", chunkNum)
-clientSocket.close()
 client = Client("172.0.0.1", serverPort[0], "Local_Client")
 client.Client_Process(fileName, peerNum, serverName, serverPort, chunkNum)
 # process = multiprocessing.Process(target=client.Client_Process, args=(fileName, peerNum, serverName, serverPort, chunkNum))
