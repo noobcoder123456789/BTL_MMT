@@ -2,6 +2,7 @@ import os
 import sys
 import time
 import math
+import psutil
 import socket
 import requests
 import threading
@@ -111,10 +112,18 @@ class Peer():
         thread.join()
         os.system('cmd /c "cd Share_File & rmdir /s /q Chunk_List"')
 
+def get_wireless_ipv4():
+    for interface, addrs in psutil.net_if_addrs().items():
+        if "Wi-Fi" in interface or "Wireless" in interface or "wlan" in interface:
+            for addr in addrs:
+                if addr.family == socket.AF_INET:
+                    return addr.address
+    return None
+
 tracker_url = "http://192.168.1.13:5000"
 peerID = Peer.get_peers_count(tracker_url) + 1
 port = 12000 + peerID - 1
-peer = Peer("192.168.1.13", port, peerID, "Share_File")
+peer = Peer(str(get_wireless_ipv4()), port, peerID, "Share_File")
 files = get_file_wish_to_share("./Share_File")
 print("Joining to swarm....")
 peer.announce_to_tracker(tracker_url, files)

@@ -2,6 +2,7 @@ import os
 import sys
 import time
 import socket
+import psutil
 import requests
 import bencodepy
 import threading
@@ -17,7 +18,7 @@ class Client():
         self.local_path = local_path
         os.system("mkdir " + str(local_path) + " && cd " + str(local_path) + " && mkdir Chunk_List")
     
-    def get_peers_with_file(self, tracker_url, file_name):
+    def get_peers_with_file(self, tracker_url, file_name):        
         response = requests.get(tracker_url + '/peers', params={'file': file_name})
         if response.status_code == 200:
             peers = response.json().get('peers', [])
@@ -57,7 +58,7 @@ class Client():
     def parse_magnet_link(magnet_link):
         parsed = urlparse(magnet_link)
         if parsed.scheme != 'magnet':
-            raise ValueError("Đây không phải là một magnet link hợp lệ")
+            raise ValueError("This is not a valid magnet link!")
         
         params = parse_qs(parsed.query)
         info_hash = params.get('xt', [None])[0]
@@ -70,7 +71,7 @@ class Client():
         chunk_size = int(params.get('x.c', [0])[0])
         file_size = int(params.get('x.s', [0])[0])
         torrent_data = {
-            'announce': tracker_url.encode('utf-8') if tracker_url else None,
+            'announce': tracker_url if tracker_url else None,
             'hashinfo': {
                 'file_name': file_name,
                 'num_chunks': num_chunks,
@@ -113,7 +114,8 @@ class Client():
 
         for chunk in range(startChunk, endChunk + 1):
             # print('.', end='', flush=True)
-            progress_bar(chunk - startChunk + 1, endChunk - startChunk + 1)
+            # progress_bar(chunk - startChunk + 1, endChunk - startChunk + 1)
+            print("Received chunk" + str(chunk))
             data = recv_all(clientSocket, chunk_SIZE)
             fileT = open("./" + str(self.local_path) + "/Chunk_List/chunk" + str(chunk) + ".txt", "wb")
             fileT.write(data)
@@ -168,6 +170,14 @@ with placeholder.form("extended_form"):
     magnet_link = str(st.text_input("Magnet link: "))
     submit_button = st.form_submit_button("Submit")
 
+def get_wireless_ipv4():
+    for interface, addrs in psutil.net_if_addrs().items():
+        if "Wi-Fi" in interface or "Wireless" in interface or "wlan" in interface:
+            for addr in addrs:
+                if addr.family == socket.AF_INET:
+                    return addr.address
+    return None
+
 torrent_data = None
 if submit_button:
     if uploaded_file is not None:
@@ -178,9 +188,9 @@ if submit_button:
 
     # torrent_data = Client.read_torrent_file(torrent_file)
     fileName = torrent_data["hashinfo"]["file_name"]
-    tracker_url = torrent_data["announce"]
+    tracker_url = str(torrent_data["announce"])
     chunkNum = torrent_data["hashinfo"]["num_chunks"]
-    client = Client("192.168.1.12", "Local_Client")
+    client = Client(str(get_wireless_ipv4()), "Local_Client")
     serverName, serverPort = client.get_peers_with_file(tracker_url, fileName)
     peerNum = len(serverName)
 
