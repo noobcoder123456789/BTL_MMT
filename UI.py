@@ -1,4 +1,5 @@
 import os
+import sys
 import math
 import time
 import socket
@@ -59,14 +60,13 @@ class Peer():
                 connectionSocket.send(endChunk.encode('utf-8'))  
                 endChunk = int(connectionSocket.recv(1024).decode('utf-8'))
                 
-                for chunk in range(startChunk, endChunk + 1):  
+                for chunk in range(startChunk, endChunk + 1):
                     fileT = open("./" + str(self.local_path) + "/Chunk_List/chunk" + str(chunk) + ".txt", "rb")
                     data = fileT.read(chunk_SIZE)      
-                    connectionSocket.sendall(data)              
+                    connectionSocket.sendall(data)      
                 connectionSocket.close()
             
             elif request == "Client had been successully received all file":            
-                print("Peer" + str(self.peerNum) + ":", request + "from Peer" + str(self.peerNum))
                 success = "All chunk are received from Peer" + str(self.peerNum)
                 connectionSocket.send(success.encode('utf-8'))
                 connectionSocket.close()
@@ -109,19 +109,18 @@ class Client():
                 if not packet:
                     break
                 data += packet
-            return data
+            return data        
          
         clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         clientSocket.connect((serverIP, serverPort))
         request = "Request for chunk from Peer"
-        print("Client:", request)
 
         clientSocket.send(request.encode('utf-8'))
         request = clientSocket.recv(1024).decode('utf-8')
         clientSocket.send(str(startChunk).encode('utf-8'))
         request = clientSocket.recv(1024).decode('utf-8')
         clientSocket.send(str(endChunk).encode('utf-8'))
-
+        
         for chunk in range(startChunk, endChunk + 1):
             data = recv_all(clientSocket, chunk_SIZE)
             fileT = open("./" + str(self.local_path) + "/Chunk_List/chunk" + str(chunk) + ".txt", "wb")
