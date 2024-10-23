@@ -2,17 +2,85 @@ import os
 import sys
 import time
 import socket
+import requests
+import bencodepy
 import threading
 import multiprocessing
+import streamlit as st
+from urllib.parse import urlparse, parse_qs
 
 chunk_SIZE = 512 * 1024
 
 class Client():
-    def __init__(self, host, port, local_path):
+    def __init__(self, host, local_path):
         self.host = host
-        self.port = port        
         self.local_path = local_path
         os.system("mkdir " + str(local_path) + " && cd " + str(local_path) + " && mkdir Chunk_List")
+    
+    def get_peers_with_file(self, tracker_url, file_name):
+        response = requests.get(tracker_url + '/peers', params={'file': file_name})
+        if response.status_code == 200:
+            peers = response.json().get('peers', [])
+            # print(f"Các peer có file {file_name}:")
+            resIP = []
+            resPort = []
+            for peer in peers:
+                # print(f"IP: {peer['ip']}, Port: {peer['port']}")
+                resIP.append(peer['ip'])
+                resPort.append(peer['port'])
+            return (resIP, resPort)
+        else:
+            print(f"Lỗi khi lấy danh sách peer: {response.text}")
+
+    def read_torrent_file(encoded_data):
+        # with open(torrent_file, 'rb') as f:
+        #     encoded_data = f.read()
+        
+        torrent_data = {}
+        decoded_data = bencodepy.decode(encoded_data)
+        for key, value in decoded_data.items():
+            if isinstance(value, bytes):
+                torrent_data[key.decode('utf-8')] = value.decode('utf-8')
+            elif isinstance(value, dict):
+                sub_dict = {}
+                for sub_key, sub_value in value.items():
+                    if isinstance(sub_value, bytes):
+                        sub_dict[sub_key.decode('utf-8')] = sub_value.decode('utf-8')
+                    else:
+                        sub_dict[sub_key.decode('utf-8')] = sub_value
+                torrent_data[key.decode('utf-8')] = sub_dict
+            else:
+                torrent_data[key.decode('utf-8')] = value
+        
+        return torrent_data
+
+    def parse_magnet_link(magnet_link):
+        parsed = urlparse(magnet_link)
+        if parsed.scheme != 'magnet':
+            raise ValueError("Đây không phải là một magnet link hợp lệ")
+        
+        params = parse_qs(parsed.query)
+        info_hash = params.get('xt', [None])[0]
+        if info_hash and info_hash.startswith('urn:btih:'):
+            info_hash = info_hash[9:]
+
+        file_name = params.get('dn', [None])[0]
+        tracker_url = params.get('tr', [None])[0]
+        num_chunks = int(params.get('x.n', [0])[0])
+        chunk_size = int(params.get('x.c', [0])[0])
+        file_size = int(params.get('x.s', [0])[0])
+        torrent_data = {
+            'announce': tracker_url.encode('utf-8') if tracker_url else None,
+            'hashinfo': {
+                'file_name': file_name,
+                'num_chunks': num_chunks,
+                'chunk_size': chunk_size,
+                'file_size': file_size,
+                'info_hash': info_hash
+            }
+        }
+
+        return torrent_data
 
     def Client(self, serverIP, startChunk, endChunk, serverPort, peerID):   
         def recv_all(sock, size):
@@ -93,21 +161,38 @@ class Client():
         
         Client.file_make(self, fileName)
 
-peerNum = 2 # OUTPUT của phần tracker
-fileName = "a.pdf" # OUTPUT của phần tracker
-serverName = ["192.168.1.13", "192.168.88.130"] # OUTPUT của phần tracker
-serverPort = [12000, 12001]
-chunkNum = 0
-for i in range(peerNum):
-    clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    clientSocket.connect((serverName[i], serverPort[i]))
-    clientSocket.send(fileName.encode('utf-8'))
-    chunkNum = int(clientSocket.recv(1024).decode('utf-8'))    
-    clientSocket.close()
+placeholder = st.empty()
+with placeholder.form("extended_form"):
+    uploaded_file = st.file_uploader("Choose a torrent file")
+    st.write("Or")
+    magnet_link = str(st.text_input("Magnet link: "))
+    submit_button = st.form_submit_button("Submit")
 
-print("The number of chunk:", chunkNum)
-client = Client("172.0.0.1", serverPort[0], "Local_Client")
-client.Client_Process(fileName, peerNum, serverName, serverPort, chunkNum)
-# process = multiprocessing.Process(target=client.Client_Process, args=(fileName, peerNum, serverName, serverPort, chunkNum))
-# process.start()
-# process.join()
+torrent_data = None
+if submit_button:
+    if uploaded_file is not None:
+        torrent_data = (Client.read_torrent_file(uploaded_file.read()))
+    else:
+        torrent_data = (Client.parse_magnet_link(magnet_link))
+    placeholder.empty()
+
+    # torrent_data = Client.read_torrent_file(torrent_file)
+    fileName = torrent_data["hashinfo"]["file_name"]
+    tracker_url = torrent_data["announce"]
+    chunkNum = torrent_data["hashinfo"]["num_chunks"]
+    client = Client("192.168.1.12", "Local_Client")
+    serverName, serverPort = client.get_peers_with_file(tracker_url, fileName)
+    peerNum = len(serverName)
+
+    for i in range(peerNum):
+        clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        clientSocket.connect((serverName[i], serverPort[i]))
+        clientSocket.send(fileName.encode('utf-8'))
+        # chunkNum = int(clientSocket.recv(1024).decode('utf-8'))    
+        clientSocket.close()
+
+    # print("The number of chunk:", chunkNum)
+    client.Client_Process(fileName, peerNum, serverName, serverPort, chunkNum)
+    # process = multiprocessing.Process(target=client.Client_Process, args=(fileName, peerNum, serverName, serverPort, chunkNum))
+    # process.start()
+    # process.join()

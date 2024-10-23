@@ -3,6 +3,7 @@ import sys
 import time
 import math
 import socket
+import requests
 import threading
 
 chunk_SIZE = 512 * 1024
@@ -11,13 +12,36 @@ def calculate_number_of_chunk(file_path):
     file_size = os.path.getsize(file_path)
     return math.ceil(file_size / chunk_SIZE)
 
+def get_file_wish_to_share(folder_path):
+    files_in_folder = os.listdir(folder_path)
+    files = [f for f in files_in_folder if os.path.isfile(os.path.join(folder_path, f))]
+    return files
+
 class Peer():
-    def __init__(self, host, port, peerNum, local_path):
-        self.host = host
+    def __init__(self, IP, port, peerID, local_path):
+        self.IP = IP
         self.port = port
-        self.peerNum = peerNum
+        self.peerID = peerID
         self.local_path = local_path
-    
+
+    def announce_to_tracker(self, tracker_url, files):
+        data = {
+            'ip': self.IP,
+            'port': self.port,
+            'files': files
+        }
+        response = requests.post(tracker_url + '/announce', json=data)
+        if response.status_code == 200:
+            print("Successful registration with tracker")
+        else:
+            print(f"Error registering with tracker: {response.text}")
+
+    def get_peers_count(tracker_url):
+        response = requests.get(tracker_url + '/peers_count')
+        if response.status_code == 200:
+            peer_count = response.json().get('peer_count', 0)
+            return peer_count
+
     def Server(self, serverSocket):
         def progress_bar(current, total, bar_length=50):
             progress = current / total
@@ -30,7 +54,7 @@ class Peer():
         # serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         # serverSocket.bind(("", self.port))
         # serverSocket.listen(1)
-        print("Peer" + str(self.peerNum) + ":", "The Peer" + str(self.peerNum) + " is ready to send file")
+        print("Peer" + str(self.peerID) + ":", "The Peer" + str(self.peerID) + " is ready to send file")
         
         while True:
             connectionSocket, addr = serverSocket.accept()    
@@ -56,13 +80,13 @@ class Peer():
                 connectionSocket.close()
             
             elif request == "Client had been successully received all file":            
-                print("Peer" + str(self.peerNum) + ":", request + "from Peer" + str(self.peerNum))
-                success = "All chunk are received from Peer" + str(self.peerNum)
+                print("Peer" + str(self.peerID) + ":", request + "from Peer" + str(self.peerID))
+                success = "All chunk are received from Peer" + str(self.peerID)
                 connectionSocket.send(success.encode('utf-8'))
                 connectionSocket.close()
                 serverSocket.close()            
-                print("Peer" + str(self.peerNum) + ":", "Peer" + str(self.peerNum) + " has successully sent all file")
-                print("Peer" + str(self.peerNum) + ":", "Peer" + str(self.peerNum) + "'s TCP connection close.")
+                print("Peer" + str(self.peerID) + ":", "Peer" + str(self.peerID) + " has successully sent all file")
+                print("Peer" + str(self.peerID) + ":", "Peer" + str(self.peerID) + "'s TCP connection close.")
                 break
 
     def file_break(self, file_name):
@@ -85,19 +109,25 @@ class Peer():
         thread = threading.Thread(target=Peer.Server, args=(self, serverSocket))
         thread.start()
         thread.join()
-        os.system('cmd /c "cd File_List & rmdir /s /q Chunk_List"')
+        os.system('cmd /c "cd Share_File & rmdir /s /q Chunk_List"')
+
+tracker_url = "http://192.168.1.13:5000"
+peerID = Peer.get_peers_count(tracker_url) + 1
+port = 12000 + peerID - 1
+peer = Peer("192.168.1.13", port, peerID, "Share_File")
+files = get_file_wish_to_share("./Share_File")
+print("Joining to swarm....")
+peer.announce_to_tracker(tracker_url, files)
 
 print("Listening....")
-port = 12000
 serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 serverSocket.bind(("", port))
 serverSocket.listen(1)
 connectionSocket, addr = serverSocket.accept()
 fileName = connectionSocket.recv(1024).decode('utf-8')
-chunkNum = calculate_number_of_chunk("./File_List/" + fileName)
-connectionSocket.send(str(chunkNum).encode('utf-8'))
+# chunkNum = calculate_number_of_chunk("./Share_File/" + fileName)
+# connectionSocket.send(str(chunkNum).encode('utf-8'))
 # connectionSocket.close()
 print("File which client request:", fileName)
-peer = Peer("192.168.157.72", port, 1, "File_List")
 peer.file_break(fileName)
 peer.start(serverSocket)
