@@ -1,4 +1,12 @@
+import os
+import math
 import hashlib
+
+chunk_SIZE = 512 * 1024
+
+def calculate_number_of_chunk(file_path):
+    file_size = os.path.getsize(file_path)
+    return math.ceil(file_size / chunk_SIZE)
 
 def create_magnet_link(torrent_data):
     tracker_url = torrent_data['announce'].decode('utf-8')
@@ -19,19 +27,17 @@ def create_magnet_link(torrent_data):
     
     return magnet_link
 
-chunk_size = 512 * 1024
 file_name = "a.pdf"
-num_chunks = 66
 file_path = "./Share_File/" + file_name
-tracker_url = "http://192.168.1.13:5000"
-output_file = "./Torrent_File/a.torrent"
-file_size = 66 * chunk_size
+num_chunks = calculate_number_of_chunk(file_path)
+tracker_url = "http://10.130.151.157:5000"
+file_size = os.path.getsize(file_path)
 torrent_data = {
     'announce': tracker_url.encode('utf-8'),
     'hashinfo': {
         'file_name': file_name,
         'num_chunks': num_chunks,
-        'chunk_size': chunk_size,
+        'chunk_size': chunk_SIZE,
         'file_size': file_size
     }
 }

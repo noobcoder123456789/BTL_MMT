@@ -6,6 +6,7 @@ import psutil
 import socket
 import requests
 import threading
+import streamlit as st
 
 chunk_SIZE = 512 * 1024
 
@@ -24,6 +25,19 @@ class Peer():
         self.port = port
         self.peerID = peerID
         self.local_path = local_path
+
+    def upload_file():
+        placeholder = st.empty()
+        with placeholder.form("extended_form"):
+            uploaded_files = st.file_uploader("Choose Upload File Which ", accept_multiple_files=True)
+            submit_button = st.form_submit_button("Submit")
+        
+        if submit_button and uploaded_files is not None:
+            for uploaded_file in uploaded_files:
+                fileUp = open("./Share_File/" + str(uploaded_file.name), "wb")
+                fileUp.write(uploaded_file.read())
+            placeholder.empty()
+        return None
 
     def announce_to_tracker(self, tracker_url, files):
         data = {
@@ -123,6 +137,7 @@ def get_wireless_ipv4():
 tracker_url = "http://192.168.1.13:5000"
 peerID = Peer.get_peers_count(tracker_url) + 1
 port = 12000 + peerID - 1
+Peer.upload_file()
 peer = Peer(str(get_wireless_ipv4()), port, peerID, "Share_File")
 files = get_file_wish_to_share("./Share_File")
 print("Joining to swarm....")
