@@ -1,9 +1,14 @@
 import socket
 import streamlit as st
+from BackEnd.Helper import get_wireless_ipv4
 from BackEnd.ClientBackEnd import Client
 
+
 """UI TỪ CHỖ NÀY"""
+st.set_page_config(layout="wide", page_title="HCMUTorrent")
+
 placeholder = st.empty()
+
 with placeholder.form("extended_form"):
     uploaded_file = st.file_uploader("Choose a torrent file")
     st.write("Or")
@@ -35,7 +40,7 @@ if submit_button:
     fileName = torrent_data["hashinfo"]["file_name"]
     tracker_url = str(torrent_data["announce"])
     chunkNum = torrent_data["hashinfo"]["num_chunks"]
-    client = Client(str(Client.get_wireless_ipv4()), "Local_Client")
+    client = Client(str(get_wireless_ipv4()), "Local_Client")
     serverName, serverPort = client.get_peers_with_file(tracker_url, fileName)
     peerNum = len(serverName)
 
@@ -43,7 +48,7 @@ if submit_button:
         clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         clientSocket.connect((serverName[i], serverPort[i]))
         clientSocket.send(fileName.encode('utf-8'))
-        # chunkNum = int(clientSocket.recv(1024).decode('utf-8'))    
+        # chunkNum = int(clientSocket.recv(1024).decode('utf-8'))
         clientSocket.close()
 
     # print("The number of chunk:", chunkNum)

@@ -5,6 +5,7 @@ import math
 import bencodepy
 # from urllib.parse import urlparse, parse_qs
 
+
 def create_torrent_file(file_path, file_name, tracker_url, chunk_size, output_file):
     file_size = os.path.getsize(file_path)
     num_chunks = math.ceil(file_size / chunk_size)
@@ -18,15 +19,16 @@ def create_torrent_file(file_path, file_name, tracker_url, chunk_size, output_fi
             'file_size': file_size
         }
     }
-    
+
     # Bencode the data
     encoded_data = bencodepy.encode(torrent_data)
-    
+
     # Write the encoded data to a .torrent file
     with open(output_file, "wb") as f:
         f.write(encoded_data)
-    
+
     print(f"Torrent file '{output_file}' created successfully!")
+
 
 chunk_size = 512 * 1024
 file_name = "a.pdf"
