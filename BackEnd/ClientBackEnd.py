@@ -15,20 +15,14 @@ class Client():
     def __init__(self, host, local_path):
         self.host = host
         self.local_path = local_path
-        os.system("mkdir " + str(local_path) + " && cd " +
+        os.system("cd BackEnd && mkdir " + str(local_path) + " && cd " +
                   str(local_path) + " && mkdir Chunk_List")
 
-    # def get_wireless_ipv4():
-    #     for interface, addrs in psutil.net_if_addrs().items():
-    #         if "Wi-Fi" in interface or "Wireless" in interface or "wlan" in interface:
-    #             for addr in addrs:
-    #                 if addr.family == socket.AF_INET:
-    #                     return addr.address
-    #     return None
-
     def get_peers_with_file(self, tracker_url, file_name):
+        print("Truoc")
         response = requests.get(tracker_url + '/peers',
                                 params={'file': file_name})
+        print("Sau")
         if response.status_code == 200:
             peers = response.json().get('peers', [])
             # print(f"Các peer có file {file_name}:")
@@ -93,7 +87,7 @@ class Client():
 
         return torrent_data
 
-    def start(self, serverIP, startChunk, endChunk, serverPort, peerID):
+    def start(self, serverIP, startChunk, endChunk, serverPort, peerID, progress):
         def recv_all(sock, size):
             data = b''
             while len(data) < size:
@@ -123,11 +117,13 @@ class Client():
         clientSocket.send(str(endChunk).encode('utf-8'))
 
         for chunk in range(startChunk, endChunk + 1):
-            # print('.', end='', flush=True)
-            # progress_bar(chunk - startChunk + 1, endChunk - startChunk + 1)
+            progress = float((chunk - startChunk + 1) /
+                             (endChunk - startChunk + 1))
+            print('.', end='', flush=True)
+            progress_bar(chunk - startChunk + 1, endChunk - startChunk + 1)
             print("Received chunk" + str(chunk))
             data = recv_all(clientSocket, chunk_SIZE)
-            fileT = open("./" + str(self.local_path) +
+            fileT = open("./BackEnd/" + str(self.local_path) +
                          "/Chunk_List/chunk" + str(chunk) + ".txt", "wb")
             fileT.write(data)
             fileT.close()
@@ -143,11 +139,12 @@ class Client():
 
     def file_make(self, file_name):
         SplitNum = 0
-        dir_path = "./" + str(self.local_path) + "/Chunk_List"
+        dir_path = "./BackEnd/" + str(self.local_path) + "/Chunk_List"
         for path in os.listdir(dir_path):
             SplitNum += os.path.isfile(os.path.join(dir_path, path)) is True
 
-        fileM = open("./" + str(self.local_path) + "/" + str(file_name), "wb")
+        fileM = open("./BackEnd/" + str(self.local_path) +
+                     "/" + str(file_name), "wb")
         for chunk in range(SplitNum):
             fileT = open(str(dir_path) + "/chunk" + str(chunk) + ".txt", "rb")
             byte = fileT.read(chunk_SIZE)
@@ -156,9 +153,9 @@ class Client():
         fileM.close()
         print("Client: Merge all chunk completely")
 
-    def Client_Process(self, fileName, peerNum, serverIP, serverPort, chunkNum):
+    def Client_Process(self, fileName, peerNum, serverIP, serverPort, chunkNum, progress):
         os.system(
-            'cmd /c "mkdir Local_Client & cd Local_Client & mkdir Chunk_List"')
+            'cmd /c " cd BackEnd & mkdir Local_Client & cd Local_Client & mkdir Chunk_List"')
         chunkForEachPeer = chunkNum // peerNum
         startChunk = 0
         threads = []
@@ -168,7 +165,7 @@ class Client():
             print("Client: Request chunk" + str(startChunk) +
                   " to chunk" + str(endChunk) + " from Peer" + str(i))
             thread = threading.Thread(target=Client.start, args=(
-                self, serverIP[i - 1], startChunk, endChunk, serverPort[i - 1], i))
+                self, serverIP[i - 1], startChunk, endChunk, serverPort[i - 1], i, progress[i - 1]))
             threads.append(thread)
             startChunk = endChunk + 1
             thread.start()
@@ -177,39 +174,3 @@ class Client():
             thread.join()
 
         Client.file_make(self, fileName)
-
-# placeholder = st.empty()
-# with placeholder.form("extended_form"):
-#     uploaded_file = st.file_uploader("Choose a torrent file")
-#     st.write("Or")
-#     magnet_link = str(st.text_input("Magnet link: "))
-#     submit_button = st.form_submit_button("Submit")
-
-# torrent_data = None
-# if submit_button:
-#     if uploaded_file is not None:
-#         torrent_data = (Client.read_torrent_file(uploaded_file.read()))
-#     else:
-#         torrent_data = (Client.parse_magnet_link(magnet_link))
-#     placeholder.empty()
-
-#     # torrent_data = Client.read_torrent_file(torrent_file)
-#     fileName = torrent_data["hashinfo"]["file_name"]
-#     tracker_url = str(torrent_data["announce"])
-#     chunkNum = torrent_data["hashinfo"]["num_chunks"]
-#     client = Client(str(Client.get_wireless_ipv4()), "Local_Client")
-#     serverName, serverPort = client.get_peers_with_file(tracker_url, fileName)
-#     peerNum = len(serverName)
-
-#     for i in range(peerNum):
-#         clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-#         clientSocket.connect((serverName[i], serverPort[i]))
-#         clientSocket.send(fileName.encode('utf-8'))
-#         # chunkNum = int(clientSocket.recv(1024).decode('utf-8'))
-#         clientSocket.close()
-
-#     # print("The number of chunk:", chunkNum)
-#     client.Client_Process(fileName, peerNum, serverName, serverPort, chunkNum)
-#     # process = multiprocessing.Process(target=client.Client_Process, args=(fileName, peerNum, serverName, serverPort, chunkNum))
-#     # process.start()
-#     # process.join()

@@ -9,9 +9,11 @@ import threading
 
 chunk_SIZE = 512 * 1024
 
+
 def calculate_number_of_chunk(file_path):
     file_size = os.path.getsize(file_path)
     return math.ceil(file_size / chunk_SIZE)
+
 
 class Peer():
     def __init__(self, IP, port, peerID, local_path):
@@ -50,62 +52,75 @@ class Peer():
         # serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         # serverSocket.bind(("", self.port))
         # serverSocket.listen(1)
-        print("Peer" + str(self.peerID) + ":", "The Peer" + str(self.peerID) + " is ready to send file")
-        
+        print("Peer" + str(self.peerID) + ":", "The Peer" +
+              str(self.peerID) + " is ready to send file")
+
         while True:
-            connectionSocket, addr = serverSocket.accept()    
+            connectionSocket, addr = serverSocket.accept()
             request = connectionSocket.recv(1024).decode('utf-8')
-            
-            if request == "Request for chunk from Peer":                    
+
+            if request == "Request for chunk from Peer":
                 startChunk = "Start"
-                connectionSocket.send(startChunk.encode('utf-8')) 
+                connectionSocket.send(startChunk.encode('utf-8'))
                 startChunk = int(connectionSocket.recv(1024).decode('utf-8'))
-                        
+
                 endChunk = "End"
-                connectionSocket.send(endChunk.encode('utf-8'))  
+                connectionSocket.send(endChunk.encode('utf-8'))
                 endChunk = int(connectionSocket.recv(1024).decode('utf-8'))
-                
+
                 # print("Sending chunk to client", end='', flush=True)
-                for chunk in range(startChunk, endChunk + 1):  
+                for chunk in range(startChunk, endChunk + 1):
                     # print('.', end='', flush=True)
-                    progress_bar(chunk - startChunk + 1, endChunk - startChunk + 1)
-                    fileT = open("./" + str(self.local_path) + "/Chunk_List/chunk" + str(chunk) + ".txt", "rb")
-                    data = fileT.read(chunk_SIZE)      
-                    connectionSocket.sendall(data) 
-                print('')             
+                    # print("Sending chunk:", chunk)
+                    progress_bar(chunk - startChunk + 1,
+                                 endChunk - startChunk + 1)
+                    fileT = open("./BackEnd/" + str(self.local_path) +
+                                 "/Chunk_List/chunk" + str(chunk) + ".txt", "rb")
+                    # print("./BackEnd/" + str(self.local_path) +
+                    #       "/Chunk_List/chunk" + str(chunk) + ".txt")
+                    data = fileT.read(chunk_SIZE)
+                    connectionSocket.sendall(data)
+                print('')
                 connectionSocket.close()
-            
-            elif request == "Client had been successully received all file":            
-                print("Peer" + str(self.peerID) + ":", request + "from Peer" + str(self.peerID))
+
+            elif request == "Client had been successully received all file":
+                print("Peer" + str(self.peerID) + ":",
+                      request + "from Peer" + str(self.peerID))
                 success = "All chunk are received from Peer" + str(self.peerID)
                 connectionSocket.send(success.encode('utf-8'))
                 connectionSocket.close()
-                serverSocket.close()            
-                print("Peer" + str(self.peerID) + ":", "Peer" + str(self.peerID) + " has successully sent all file")
-                print("Peer" + str(self.peerID) + ":", "Peer" + str(self.peerID) + "'s TCP connection close.")
+                serverSocket.close()
+                print("Peer" + str(self.peerID) + ":", "Peer" +
+                      str(self.peerID) + " has successully sent all file")
+                print("Peer" + str(self.peerID) + ":", "Peer" +
+                      str(self.peerID) + "'s TCP connection close.")
                 break
 
     def file_break(self, file_name):
-        os.system('cmd /c "cd ' + str(self.local_path) + ' & mkdir Chunk_List"')
-        fileR = open("./" + str(self.local_path) + "/" + str(file_name), "rb")
+        os.system('cmd /c "cd BackEnd/' +
+                  str(self.local_path) + ' & mkdir Chunk_List"')
+        fileR = open("./BackEnd/" + str(self.local_path) +
+                     "/" + str(file_name), "rb")
 
         chunk = 0
         byte = fileR.read(chunk_SIZE)
         while byte:
             # if chunk == 0:
             #     print(byte)
-            
-            fileT = open("./" + str(self.local_path) + "/Chunk_List/chunk" + str(chunk) + ".txt", "wb")
+
+            fileT = open("./BackEnd/" + str(self.local_path) +
+                         "/Chunk_List/chunk" + str(chunk) + ".txt", "wb")
             fileT.write(byte)
             fileT.close()
             byte = fileR.read(chunk_SIZE)
             chunk += 1
 
     def start(self, serverSocket):
-        thread = threading.Thread(target=Peer.Server, args=(self, serverSocket))
+        thread = threading.Thread(
+            target=Peer.Server, args=(self, serverSocket))
         thread.start()
         thread.join()
-        os.system('cmd /c "cd Share_File & rmdir /s /q Chunk_List"')
+        os.system('cmd /c "cd BackEnd/Share_File & rmdir /s /q Chunk_List"')
 
     def get_wireless_ipv4():
         for interface, addrs in psutil.net_if_addrs().items():
@@ -133,7 +148,7 @@ class Peer():
 #     placeholder.empty()
 #     upload = True
 
-# if upload is True:    
+# if upload is True:
 #     peer = Peer(str(Peer.get_wireless_ipv4()), port, peerID, "Share_File")
 #     files = get_file_wish_to_share("./Share_File")
 #     print("Joining to swarm....")
