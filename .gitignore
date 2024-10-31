@@ -161,5 +161,6 @@ build/
 /BackEnd/Share_File/*
 /BackEnd/Torrent_File/*
 /BackEnd/Reference/*
+/BackEnd/Local_Client/*
 
 # End of default GitHub Python .gitignore

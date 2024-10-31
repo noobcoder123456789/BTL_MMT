@@ -33,7 +33,7 @@ def create_magnet_link(torrent_data):
 file_name = "a.pdf"
 file_path = "./Share_File/" + file_name
 num_chunks = calculate_number_of_chunk(file_path)
-tracker_url = "http://10.130.41.120:18000"
+tracker_url = "http://192.168.242.17:18000"
 file_size = os.path.getsize(file_path)
 torrent_data = {
     'announce': tracker_url.encode('utf-8'),

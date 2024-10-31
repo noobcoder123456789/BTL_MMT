@@ -19,10 +19,9 @@ class Client():
                   str(local_path) + " && mkdir Chunk_List")
 
     def get_peers_with_file(self, tracker_url, file_name):
-        print("Truoc")
         response = requests.get(tracker_url + '/peers',
                                 params={'file': file_name})
-        print("Sau")
+
         if response.status_code == 200:
             peers = response.json().get('peers', [])
             # print(f"Các peer có file {file_name}:")
@@ -87,7 +86,7 @@ class Client():
 
         return torrent_data
 
-    def start(self, serverIP, startChunk, endChunk, serverPort, peerID, progress):
+    def start(self, serverIP, startChunk, endChunk, serverPort, peerID):
         def recv_all(sock, size):
             data = b''
             while len(data) < size:
@@ -97,13 +96,13 @@ class Client():
                 data += packet
             return data
 
-        def progress_bar(current, total, bar_length=50):
-            progress = current / total
-            block = int(bar_length * progress)
-            bar = "#" * block + "-" * (bar_length - block)
-            percent = round(progress * 100, 2)
-            sys.stdout.write(f"\rDownloading: [{bar}] {percent}%")
-            sys.stdout.flush()
+        # def progress_bar(current, total, bar_length=50):
+        #     progress = current / total
+        #     block = int(bar_length * progress)
+        #     bar = "#" * block + "-" * (bar_length - block)
+        #     percent = round(progress * 100, 2)
+        #     sys.stdout.write(f"\rDownloading: [{bar}] {percent}%")
+        #     sys.stdout.flush()
 
         clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         clientSocket.connect((serverIP, serverPort))
@@ -120,7 +119,7 @@ class Client():
             progress = float((chunk - startChunk + 1) /
                              (endChunk - startChunk + 1))
             print('.', end='', flush=True)
-            progress_bar(chunk - startChunk + 1, endChunk - startChunk + 1)
+            # progress_bar(chunk - startChunk + 1, endChunk - startChunk + 1)
             print("Received chunk" + str(chunk))
             data = recv_all(clientSocket, chunk_SIZE)
             fileT = open("./BackEnd/" + str(self.local_path) +
@@ -153,7 +152,7 @@ class Client():
         fileM.close()
         print("Client: Merge all chunk completely")
 
-    def Client_Process(self, fileName, peerNum, serverIP, serverPort, chunkNum, progress):
+    def Client_Process(self, fileName, peerNum, serverIP, serverPort, chunkNum):
         os.system(
             'cmd /c " cd BackEnd & mkdir Local_Client & cd Local_Client & mkdir Chunk_List"')
         chunkForEachPeer = chunkNum // peerNum
@@ -165,7 +164,7 @@ class Client():
             print("Client: Request chunk" + str(startChunk) +
                   " to chunk" + str(endChunk) + " from Peer" + str(i))
             thread = threading.Thread(target=Client.start, args=(
-                self, serverIP[i - 1], startChunk, endChunk, serverPort[i - 1], i, progress[i - 1]))
+                self, serverIP[i - 1], startChunk, endChunk, serverPort[i - 1], i))
             threads.append(thread)
             startChunk = endChunk + 1
             thread.start()

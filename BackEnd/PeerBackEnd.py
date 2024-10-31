@@ -6,6 +6,7 @@ import psutil
 import socket
 import requests
 import threading
+import streamlit as st
 
 chunk_SIZE = 512 * 1024
 
@@ -85,7 +86,7 @@ class Peer():
 
             elif request == "Client had been successully received all file":
                 print("Peer" + str(self.peerID) + ":",
-                      request + "from Peer" + str(self.peerID))
+                        request + "from Peer" + str(self.peerID))
                 success = "All chunk are received from Peer" + str(self.peerID)
                 connectionSocket.send(success.encode('utf-8'))
                 connectionSocket.close()

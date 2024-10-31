@@ -5,7 +5,7 @@ from BackEnd.PeerBackEnd import Peer
 from BackEnd.Helper import get_wireless_ipv4
 
 
-tracker_url = "http://10.130.41.120:18000"
+tracker_url = "http://192.168.242.17:18000"
 peerID = Peer.get_peers_count(tracker_url) + 1
 port = 12000 + peerID - 1
 files_path = './BackEnd/Share_File'
