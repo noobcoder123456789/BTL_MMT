@@ -1,10 +1,6 @@
 import os
-import sys
-import socket
 import bencodepy
-import psutil
 import requests
-import threading
 from urllib.parse import urlparse, parse_qs
 
 chunk_SIZE = 512 * 1024
@@ -24,21 +20,16 @@ class Client():
 
         if response.status_code == 200:
             peers = response.json().get('peers', [])
-            # print(f"Các peer có file {file_name}:")
             resIP = []
             resPort = []
             for peer in peers:
-                # print(f"IP: {peer['ip']}, Port: {peer['port']}")
                 resIP.append(peer['ip'])
                 resPort.append(peer['port'])
             return (resIP, resPort)
         else:
             print(f"Lỗi khi lấy danh sách peer: {response.text}")
 
-    def read_torrent_file(encoded_data):
-        # with open(torrent_file, 'rb') as f:
-        #     encoded_data = f.read()
-
+    def read_torrent_file(self, encoded_data):
         torrent_data = {}
         decoded_data = bencodepy.decode(encoded_data)
         for key, value in decoded_data.items():
@@ -58,7 +49,7 @@ class Client():
 
         return torrent_data
 
-    def parse_magnet_link(magnet_link):
+    def parse_magnet_link(self, magnet_link):
         parsed = urlparse(magnet_link)
         if parsed.scheme != 'magnet':
             raise ValueError("This is not a valid magnet link!")
@@ -86,56 +77,6 @@ class Client():
 
         return torrent_data
 
-    def start(self, serverIP, startChunk, endChunk, serverPort, peerID):
-        def recv_all(sock, size):
-            data = b''
-            while len(data) < size:
-                packet = sock.recv(size - len(data))
-                if not packet:
-                    break
-                data += packet
-            return data
-
-        # def progress_bar(current, total, bar_length=50):
-        #     progress = current / total
-        #     block = int(bar_length * progress)
-        #     bar = "#" * block + "-" * (bar_length - block)
-        #     percent = round(progress * 100, 2)
-        #     sys.stdout.write(f"\rDownloading: [{bar}] {percent}%")
-        #     sys.stdout.flush()
-
-        clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        clientSocket.connect((serverIP, serverPort))
-        request = "Request for chunk from Peer"
-        # print("Client:", request)
-
-        clientSocket.send(request.encode('utf-8'))
-        request = clientSocket.recv(1024).decode('utf-8')
-        clientSocket.send(str(startChunk).encode('utf-8'))
-        request = clientSocket.recv(1024).decode('utf-8')
-        clientSocket.send(str(endChunk).encode('utf-8'))
-
-        for chunk in range(startChunk, endChunk + 1):
-            progress = float((chunk - startChunk + 1) /
-                             (endChunk - startChunk + 1))
-            print('.', end='', flush=True)
-            # progress_bar(chunk - startChunk + 1, endChunk - startChunk + 1)
-            print("Received chunk" + str(chunk))
-            data = recv_all(clientSocket, chunk_SIZE)
-            fileT = open("./BackEnd/" + str(self.local_path) +
-                         "/Chunk_List/chunk" + str(chunk) + ".txt", "wb")
-            fileT.write(data)
-            fileT.close()
-        print('')
-        clientSocket.close()
-
-        clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        clientSocket.connect((serverIP, serverPort))
-        request = "Client had been successully received all file"
-        clientSocket.send(request.encode('utf-8'))
-        print("Client:", clientSocket.recv(1024).decode('utf-8'))
-        clientSocket.close()
-
     def file_make(self, file_name):
         SplitNum = 0
         dir_path = "./BackEnd/" + str(self.local_path) + "/Chunk_List"
@@ -151,25 +92,3 @@ class Client():
 
         fileM.close()
         print("Client: Merge all chunk completely")
-
-    def Client_Process(self, fileName, peerNum, serverIP, serverPort, chunkNum):
-        os.system(
-            'cmd /c " cd BackEnd & mkdir Local_Client & cd Local_Client & mkdir Chunk_List"')
-        chunkForEachPeer = chunkNum // peerNum
-        startChunk = 0
-        threads = []
-        for i in range(1, peerNum + 1):
-            endChunk = (
-                chunkNum - 1) if i == peerNum else (startChunk + chunkForEachPeer - 1)
-            print("Client: Request chunk" + str(startChunk) +
-                  " to chunk" + str(endChunk) + " from Peer" + str(i))
-            thread = threading.Thread(target=Client.start, args=(
-                self, serverIP[i - 1], startChunk, endChunk, serverPort[i - 1], i))
-            threads.append(thread)
-            startChunk = endChunk + 1
-            thread.start()
-
-        for thread in threads:
-            thread.join()
-
-        Client.file_make(self, fileName)

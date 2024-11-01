@@ -1,8 +1,12 @@
 from flask import Flask, request, jsonify
+from tracker import Tracker
 
 app = Flask(__name__)
 
 peers = dict()
+files_download = dict()
+
+MyTracker = Tracker(tracker_url="0.0.0.0:18000")
 
 
 @app.route('/announce', methods=['POST'])
@@ -11,6 +15,11 @@ def announce():
     ip = data.get('ip')
     port = data.get('port')
     files = data.get('files')
+
+    for file in files:
+        torrent_data = MyTracker.create_torrent_data(file)
+        files_download[file] = [
+            MyTracker.create_magnet_link(torrent_data), MyTracker.create_torrent_file(torrent_data)]
 
     if ip and files:
         peers[ip] = {'port': port, 'files': files}
