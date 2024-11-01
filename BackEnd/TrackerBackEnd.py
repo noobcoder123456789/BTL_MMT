@@ -18,8 +18,8 @@ def announce():
 
     for file in files:
         torrent_data = MyTracker.create_torrent_data(file)
-        files_download[file] = [
-            MyTracker.create_magnet_link(torrent_data), MyTracker.create_torrent_file(torrent_data)]
+        files_download[file] = {
+            'magnet_link': MyTracker.create_magnet_link(torrent_data), 'torrent_file': MyTracker.create_torrent_file(torrent_data)}
 
     if ip and files:
         peers[ip] = {'port': port, 'files': files}

@@ -8,7 +8,7 @@ from Helper import chunk_SIZE, calculate_number_of_chunk
 
 
 class Tracker():
-    def __init__(self, upload_folder="./Share_File", torrent_folder="./Torrent_File", tracker_url):
+    def __init__(self, upload_folder="./BackEnd/Share_File", torrent_folder="./BackEnd/Torrent_File", tracker_url="192.168.92.101:18000"):
         self.upload_folder = upload_folder
         self.torrent_folder = torrent_folder
         self.tracker_url = tracker_url
@@ -19,8 +19,8 @@ class Tracker():
 
     def create_torrent_data(self, file_name):
         file_path = os.path.join(self.upload_folder, file_name)
-        num_chunks = calculate_number_of_chunk(file_path)
         file_size = os.path.getsize(file_path)
+        num_chunks = calculate_number_of_chunk(file_size)
         torrent_data = {
             'announce': self.tracker_url.encode('utf-8'),
             'hashinfo': {
@@ -52,4 +52,5 @@ class Tracker():
         return magnet_link
 
     def create_torrent_file(self, torrent_data):
-        return "Chưa làm"
+        torrent_file = bencodepy.encode(torrent_data)
+        return torrent_file
