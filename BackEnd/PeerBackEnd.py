@@ -98,23 +98,18 @@ class Peer():
                 break
 
     def file_break(self, file_name):
-        os.system('cmd /c "cd BackEnd/' +
-                  str(self.local_path) + ' & mkdir Chunk_List"')
-        fileR = open("./BackEnd/" + str(self.local_path) +
-                     "/" + str(file_name), "rb")
-
-        chunk = 0
-        byte = fileR.read(chunk_SIZE)
-        while byte:
-            # if chunk == 0:
-            #     print(byte)
-
-            fileT = open("./BackEnd/" + str(self.local_path) +
-                         "/Chunk_List/chunk" + str(chunk) + ".txt", "wb")
-            fileT.write(byte)
-            fileT.close()
+        chunk_list_dr = os.path.join("BackEnd", str(self.local_path), "Chunk_List")
+        os.makedirs(chunk_list_dr, exist_ok=True)
+        source_file_path = os.path.join("BackEnd", str(self.local_path), str(file_name))
+        with open(source_file_path, "rb") as fileR:
+            chunk = 0
             byte = fileR.read(chunk_SIZE)
-            chunk += 1
+            while byte:
+                chunk_file_path = os.path.join(chunk_list_dr, f"chunk{chunk}.txt")
+                with open(chunk_file_path, "wb") as fileT:
+                    fileT.write(byte)
+                byte = fileR.read(chunk_SIZE)
+                chunk += 1
 
     def start(self, serverSocket):
         thread = threading.Thread(

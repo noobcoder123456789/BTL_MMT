@@ -5,7 +5,7 @@ from BackEnd.PeerBackEnd import Peer
 from BackEnd.Helper import get_wireless_ipv4
 
 
-tracker_url = "http://192.168.242.17:18000"
+tracker_url = "http://192.168.92.101:18000"
 peerID = Peer.get_peers_count(tracker_url) + 1
 port = 12000 + peerID - 1
 files_path = './BackEnd/Share_File'
@@ -51,7 +51,7 @@ with col2:
 
 with col3:
     if upload:
-        peer = Peer(str(Peer.get_wireless_ipv4()), port, peerID, "Share_File")
+        peer = Peer(str("192.168.242.17"), port, peerID, "Share_File")
         st.text("Joining the swarm...")
 
         current_files = [file for file in os.listdir(
