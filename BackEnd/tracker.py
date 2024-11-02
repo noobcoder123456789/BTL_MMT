@@ -8,7 +8,7 @@ from Helper import chunk_SIZE, calculate_number_of_chunk
 
 
 class Tracker():
-    def __init__(self, upload_folder="./BackEnd/Share_File", torrent_folder="./BackEnd/Torrent_File", tracker_url="192.168.92.101:18000"):
+    def __init__(self, upload_folder="./Share_File", torrent_folder="./Torrent_File", tracker_url="http://192.168.92.101:18000"):
         self.upload_folder = upload_folder
         self.torrent_folder = torrent_folder
         self.tracker_url = tracker_url
@@ -58,4 +58,3 @@ class Tracker():
             self.torrent_folder, f"{file_name}.torrent")
         with open(torrent_file_path, 'wb') as f:
             f.write(torrent_file_content)
-        return torrent_file_path

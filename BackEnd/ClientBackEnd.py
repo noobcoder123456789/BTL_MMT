@@ -17,7 +17,6 @@ class Client():
     def get_peers_with_file(self, tracker_url, file_name):
         response = requests.get(tracker_url + '/peers',
                                 params={'file': file_name})
-
         if response.status_code == 200:
             peers = response.json().get('peers', [])
             resIP = []
