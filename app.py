@@ -14,6 +14,48 @@ files_path = './BackEnd/Share_File'
 # CLASS
 
 
+class MyPeer(Peer):
+    def Server(self, serverSocket):
+
+        while True:
+            connectionSocket, addr = serverSocket.accept()
+            request = connectionSocket.recv(1024).decode('utf-8')
+
+            if request == "Request for chunk from Peer":
+                startChunk = "Start"
+                connectionSocket.send(startChunk.encode('utf-8'))
+                startChunk = int(connectionSocket.recv(1024).decode('utf-8'))
+
+                endChunk = "End"
+                connectionSocket.send(endChunk.encode('utf-8'))
+                endChunk = int(connectionSocket.recv(1024).decode('utf-8'))
+
+                for chunk in range(startChunk, endChunk + 1):
+                    chunk_file_path = os.path.join(
+                        'BackEnd', self.local_path, 'Chunk_List', f"chunk{chunk}.txt")
+                    with open(chunk_file_path, "rb") as fileT:
+                        data = fileT.read(chunk_SIZE)
+                        connectionSocket.sendall(data)
+                connectionSocket.close()
+
+            elif request == "Client had been successully received all file":
+                print("Peer" + str(self.peerID) + ":",
+                      request + "from Peer" + str(self.peerID))
+                success = "All chunk are received from Peer" + str(self.peerID)
+                connectionSocket.send(success.encode('utf-8'))
+                connectionSocket.close()
+                serverSocket.close()
+                break
+
+    def start(self, serverSocket):
+        st.text("Sẵn sàng gửi file")
+        thread = threading.Thread(
+            target=self.Server, args=(serverSocket,))
+        thread.start()
+        thread.join()
+        os.system('cmd /c "cd BackEnd/Share_File & rmdir /s /q Chunk_List"')
+
+
 class MyClient(Client):
 
     def download(self, serverIP, startChunk, endChunk, serverPort, peerID, logs):
@@ -157,6 +199,7 @@ elif selected_tab == "Peer":
                     with open(file_path, "wb") as fileUp:
                         fileUp.write(uploaded_file.read())
                 upload = True
+                st.success("Tải file thành công")
             else:
                 st.error(
                     "Hãy chọn file để tải lên")
@@ -172,22 +215,25 @@ elif selected_tab == "Peer":
                 st.session_state.upload = False
 
         if st.session_state.upload:
-            peer = Peer(str(get_wireless_ipv4()), port, peerID, "Share_File")
-            st.text("Joining the swarm...")
+            peer = MyPeer(str(get_wireless_ipv4()), port, peerID, "Share_File")
+            st.text("Tham gia vào mạng...")
 
             current_files = [file for file in os.listdir(
                 files_path) if os.path.isfile(os.path.join(files_path, file))]
             peer.announce_to_tracker(tracker_url, current_files)
-            st.text("Listening....")
+            st.text("Đang đợi kết nối...")
 
             serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             serverSocket.bind(("", port))
             serverSocket.listen(20)
             connectionSocket, addr = serverSocket.accept()
+            st.write(f"Đã kết nối đến {addr[0]}")
             fileName = connectionSocket.recv(1024).decode('utf-8')
-            st.text(f"File which client request: {fileName}")
+            st.text(f"File được yêu cầu gửi: {fileName}")
             peer.file_break(fileName)
             peer.start(serverSocket)
+            st.text("Gửi file thành công")
+            st.text("Đóng kết nối TCP")
 
 with col3:
     st.header("Your Files")

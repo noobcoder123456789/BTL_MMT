@@ -1,9 +1,6 @@
 import os
-import sys
 import requests
-import threading
-
-chunk_SIZE = 512 * 1024
+from BackEnd.Helper import chunk_SIZE
 
 
 class Peer():
@@ -31,53 +28,6 @@ class Peer():
             peer_count = response.json().get('peer_count', 0)
             return peer_count
 
-    def Server(self, serverSocket):
-        def progress_bar(current, total, bar_length=50):
-            progress = current / total
-            block = int(bar_length * progress)
-            bar = "#" * block + "-" * (bar_length - block)
-            percent = round(progress * 100, 2)
-            sys.stdout.write(f"\rDownloading: [{bar}] {percent}%")
-            sys.stdout.flush()
-
-        print("Peer" + str(self.peerID) + ":", "The Peer" +
-              str(self.peerID) + " is ready to send file")
-
-        while True:
-            connectionSocket, addr = serverSocket.accept()
-            request = connectionSocket.recv(1024).decode('utf-8')
-
-            if request == "Request for chunk from Peer":
-                startChunk = "Start"
-                connectionSocket.send(startChunk.encode('utf-8'))
-                startChunk = int(connectionSocket.recv(1024).decode('utf-8'))
-
-                endChunk = "End"
-                connectionSocket.send(endChunk.encode('utf-8'))
-                endChunk = int(connectionSocket.recv(1024).decode('utf-8'))
-
-                for chunk in range(startChunk, endChunk + 1):
-                    chunk_file_path = os.path.join(
-                        'BackEnd', self.local_path, 'Chunk_List', f"chunk{chunk}.txt")
-                    with open(chunk_file_path, "rb") as fileT:
-                        data = fileT.read(chunk_SIZE)
-                        connectionSocket.sendall(data)
-                print('')
-                connectionSocket.close()
-
-            elif request == "Client had been successully received all file":
-                print("Peer" + str(self.peerID) + ":",
-                      request + "from Peer" + str(self.peerID))
-                success = "All chunk are received from Peer" + str(self.peerID)
-                connectionSocket.send(success.encode('utf-8'))
-                connectionSocket.close()
-                serverSocket.close()
-                print("Peer" + str(self.peerID) + ":", "Peer" +
-                      str(self.peerID) + " has successully sent all file")
-                print("Peer" + str(self.peerID) + ":", "Peer" +
-                      str(self.peerID) + "'s TCP connection close.")
-                break
-
     def file_break(self, file_name):
         chunk_list_path = os.path.join(
             'BackEnd', self.local_path, 'Chunk_List')
@@ -94,10 +44,3 @@ class Peer():
             fileT.close()
             byte = fileR.read(chunk_SIZE)
             chunk += 1
-
-    def start(self, serverSocket):
-        thread = threading.Thread(
-            target=Peer.Server, args=(self, serverSocket))
-        thread.start()
-        thread.join()
-        os.system('cmd /c "cd BackEnd/Share_File & rmdir /s /q Chunk_List"')
