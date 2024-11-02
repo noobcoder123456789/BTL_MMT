@@ -1,8 +1,7 @@
 from flask import Flask, request, jsonify
 from tracker import Tracker
-import base64
 
-app = Flask(_name_)
+app = Flask(__name__)
 
 peers = dict()
 files_download = dict()
