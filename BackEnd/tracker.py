@@ -1,14 +1,11 @@
 import os
-import math
 import hashlib
-import os
-import math
 import bencodepy
-from Helper import chunk_SIZE, calculate_number_of_chunk
+from Helper import chunk_SIZE, tracker_url, calculate_number_of_chunk
 
 
 class Tracker():
-    def __init__(self, upload_folder="./Share_File", torrent_folder="./Torrent_File", tracker_url="http://192.168.92.101:18000"):
+    def __init__(self, upload_folder="./Share_File", torrent_folder="./Torrent_File", tracker_url=tracker_url):
         self.upload_folder = upload_folder
         self.torrent_folder = torrent_folder
         self.tracker_url = tracker_url

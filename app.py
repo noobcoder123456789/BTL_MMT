@@ -1,14 +1,14 @@
 import os
 import socket
 import streamlit as st
+import threading
 from BackEnd.PeerBackEnd import Peer
 from BackEnd.ClientBackEnd import Client
-from BackEnd.Helper import get_wireless_ipv4, list_shared_files
+from BackEnd.Helper import get_wireless_ipv4, list_shared_files, chunk_SIZE, tracker_url
 
 # CONSTANT
 
 
-tracker_url = "http://10.130.41.120:18000"
 peerID = Peer.get_peers_count(tracker_url) + 1
 port = 12000 + peerID - 1
 files_path = './BackEnd/Share_File'
@@ -17,69 +17,75 @@ files_path = './BackEnd/Share_File'
 
 
 class MyClient(Client):
-    def recv_all(self, sock, size):
-        data = b''
-        while len(data) < size:
-            packet = sock.recv(size - len(data))
-            if not packet:
-                break
-            data += packet
-        return data
 
-    def Client_Process(self, fileName, peerNum, serverIPs, serverPorts, chunkNum, progress_bars):
+    def download(self, serverIP, startChunk, endChunk, serverPort, peerID):
+        def recv_all(sock, size):
+            data = b''
+            while len(data) < size:
+                packet = sock.recv(size - len(data))
+                if not packet:
+                    break
+                data += packet
+            return data
+
+        clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        clientSocket.connect((serverIP, serverPort))
+        request = "Request for chunk from Peer"
+
+        clientSocket.send(request.encode('utf-8'))
+        request = clientSocket.recv(1024).decode('utf-8')
+        clientSocket.send(str(startChunk).encode('utf-8'))
+        request = clientSocket.recv(1024).decode('utf-8')
+        clientSocket.send(str(endChunk).encode('utf-8'))
+
+        for chunk in range(startChunk, endChunk + 1):
+            data = recv_all(clientSocket, chunk_SIZE)
+            # Save the chunk
+            file_path = f"./BackEnd/{self.local_path}/Chunk_List/chunk{chunk}.txt"
+            os.makedirs(os.path.dirname(file_path), exist_ok=True)
+            with open(file_path, "wb") as fileT:
+                fileT.write(data)
+
+            print(
+                f"Received chunk {chunk} from {serverIP}:{serverPort}")
+
+        print(f"Finished downloading from {serverIP}:{serverPort}")
+
+        print('')
+        clientSocket.close()
+        clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        clientSocket.connect((serverIP, serverPort))
+        request = "Client had been successully received all file"
+        clientSocket.send(request.encode('utf-8'))
+        print("Client:", clientSocket.recv(1024).decode('utf-8'))
+        clientSocket.close()
+
+    def Client_Process(self, fileName, peerNum, serverIPs, serverPorts, chunkNum):
         print(f"Processing file: {fileName}")
         print(f"Number of peers: {peerNum}")
 
-        for idx, (serverIP, serverPort) in enumerate(zip(serverIPs, serverPorts)):
-            print(f"Connecting to server {serverIP}:{serverPort}")
+        os.system(
+            'cmd /c "mkdir Local_Client & cd Local_Client & mkdir Chunk_List"')
+        chunkForEachPeer = chunkNum // peerNum
+        startChunk = 0
+        threads = []
+        for i in range(1, peerNum + 1):
+            endChunk = (
+                chunkNum - 1) if i == peerNum else (startChunk + chunkForEachPeer - 1)
+            print("Client: Request chunk" + str(startChunk) +
+                  " to chunk" + str(endChunk) + " from Peer" + str(i))
+            thread = threading.Thread(target=self.download, args=(
+                self, serverIPs[i - 1], startChunk, endChunk, serverPorts[i - 1], i))
+            threads.append(thread)
+            startChunk = endChunk + 1
+            thread.start()
 
-            clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            try:
-                clientSocket.connect((serverIP, serverPort))
-                request = "Request for chunk from Peer"
-                clientSocket.send(request.encode('utf-8'))
-
-                # Example communication
-                response = clientSocket.recv(1024).decode('utf-8')
-                print(f"Server response: {response}")
-
-                # Define the range of chunks this peer will handle
-                # For simplicity, assume equal distribution
-                chunks_per_peer = chunkNum // peerNum
-                startChunk = idx * chunks_per_peer
-                endChunk = (idx + 1) * chunks_per_peer - \
-                    1 if idx != peerNum - 1 else chunkNum - 1
-
-                clientSocket.send(str(startChunk).encode('utf-8'))
-                clientSocket.recv(1024)  # Acknowledge
-                clientSocket.send(str(endChunk).encode('utf-8'))
-                clientSocket.recv(1024)  # Acknowledge
-
-                for chunk in range(startChunk, endChunk + 1):
-                    # Assuming chunk size is 1024 bytes
-                    data = self.recv_all(clientSocket, 1024)
-                    # Save the chunk
-                    file_path = f"./BackEnd/{self.local_path}/Chunk_List/chunk{chunk}.txt"
-                    os.makedirs(os.path.dirname(file_path), exist_ok=True)
-                    with open(file_path, "wb") as fileT:
-                        fileT.write(data)
-
-                    # Update progress
-                    progress = (chunk - startChunk + 1) / \
-                        (endChunk - startChunk + 1)
-                    progress_bars[idx].progress(progress)
-
-                    print(
-                        f"Received chunk {chunk} from {serverIP}:{serverPort}")
-
-                print(f"Finished downloading from {serverIP}:{serverPort}")
-
-            except Exception as e:
-                print(f"Error connecting to {serverIP}:{serverPort} - {e}")
-            finally:
-                clientSocket.close()
+        for thread in threads:
+            thread.join()
 
         print("Finished processing all servers.")
+
+        self.file_make(self, fileName)
 
 
 # UI
@@ -112,24 +118,12 @@ with col1:
             else:
                 torrent_data = (my_client.parse_magnet_link(magnet_link))
 
-            message_placeholder.success("Upload successful")
-
             fileName = torrent_data["hashinfo"]["file_name"]
             tracker_url = str(torrent_data["announce"])
             chunkNum = torrent_data["hashinfo"]["num_chunks"]
             serverName, serverPort = my_client.get_peers_with_file(
                 tracker_url, fileName)
             peerNum = len(serverName)
-
-            progress_placeholders = []
-            progress_bars = []
-            for i in range(peerNum):
-                peer_placeholder = st.empty()
-                peer_placeholder.write(
-                    f"Peer {i+1}: {serverName[i]}:{serverPort[i]}")
-                progress_bar = peer_placeholder.progress(0)
-                progress_placeholders.append(peer_placeholder)
-                progress_bars.append(progress_bar)
 
             for i in range(peerNum):
                 clientSocket = socket.socket(
@@ -139,9 +133,9 @@ with col1:
                 clientSocket.close()
 
             my_client.Client_Process(fileName, peerNum, serverName,
-                                     serverPort, chunkNum, progress_bars)
+                                     serverPort, chunkNum)
 
-            st.success("Download completed successfully!")
+            st.success("Download completed successfully")
 
     with tab2:
 
@@ -175,8 +169,7 @@ with col2:
 
 with col3:
     if upload:
-        peer = Peer(str(Peer.get_wireless_ipv4()),
-                    port, peerID, "Share_File")
+        peer = Peer(str(get_wireless_ipv4()), port, peerID, "Share_File")
         st.text("Joining the swarm...")
 
         current_files = [file for file in os.listdir(

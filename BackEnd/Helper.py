@@ -4,6 +4,7 @@ import os
 import math
 
 chunk_SIZE = 512 * 1024
+tracker_url = "http://192.168.1.8:18000"
 
 
 def get_wireless_ipv4():

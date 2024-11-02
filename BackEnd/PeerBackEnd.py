@@ -1,15 +1,9 @@
 import os
 import sys
-import math
 import requests
 import threading
 
 chunk_SIZE = 512 * 1024
-
-
-# def calculate_number_of_chunk(file_path):
-#     file_size = os.path.getsize(file_path)
-#     return math.ceil(file_size / chunk_SIZE)
 
 
 class Peer():
@@ -99,9 +93,6 @@ class Peer():
         chunk = 0
         byte = fileR.read(chunk_SIZE)
         while byte:
-            # if chunk == 0:
-            #     print(byte)
-
             fileT = open("./BackEnd/" + str(self.local_path) +
                          "/Chunk_List/chunk" + str(chunk) + ".txt", "wb")
             fileT.write(byte)
@@ -115,11 +106,3 @@ class Peer():
         thread.start()
         thread.join()
         os.system('cmd /c "cd BackEnd/Share_File & rmdir /s /q Chunk_List"')
-
-    # def get_wireless_ipv4():
-    #     for interface, addrs in psutil.net_if_addrs().items():
-    #         if "Wi-Fi" in interface or "Wireless" in interface or "wlan" in interface:
-    #             for addr in addrs:
-    #                 if addr.family == socket.AF_INET:
-    #                     return addr.address
-    #     return None

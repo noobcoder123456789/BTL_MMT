@@ -100,8 +100,6 @@ if submit_button:
     else:
         torrent_data = (my_client.parse_magnet_link(magnet_link))
 
-    message_placeholder.success("Upload successful")
-
     fileName = torrent_data["hashinfo"]["file_name"]
     tracker_url = str(torrent_data["announce"])
     chunkNum = torrent_data["hashinfo"]["num_chunks"]

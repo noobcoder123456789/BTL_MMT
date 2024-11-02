@@ -2,18 +2,12 @@ import os
 import socket
 import streamlit as st
 from BackEnd.PeerBackEnd import Peer
-from BackEnd.Helper import get_wireless_ipv4
+from BackEnd.Helper import get_wireless_ipv4, list_shared_files, tracker_url
 
 
-tracker_url = "http://192.168.92.101:18000"
 peerID = Peer.get_peers_count(tracker_url) + 1
 port = 12000 + peerID - 1
 files_path = './BackEnd/Share_File'
-
-
-def list_shared_files():
-    return [file for file in os.listdir(files_path) if os.path.isfile(os.path.join(files_path, file))]
-
 
 upload = False
 st.set_page_config(layout="wide", page_title="HCMUTorrent")
@@ -45,7 +39,7 @@ with col1:
 
 with col2:
     st.header("Your file")
-    shared_files = list_shared_files()
+    shared_files = list_shared_files(file_path)
     for file in shared_files:
         st.text(file)
 

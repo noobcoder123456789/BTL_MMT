@@ -6,7 +6,7 @@ app = Flask(__name__)
 peers = dict()
 files_download = dict()
 
-MyTracker = Tracker(tracker_url="http://192.168.92.101:18000")
+MyTracker = Tracker()
 
 
 @app.route('/announce', methods=['POST'])
