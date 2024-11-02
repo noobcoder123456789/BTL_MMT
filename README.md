@@ -6,14 +6,6 @@ Install libraries
 
 `pip install -r requirements.txt`
 
-Run Tracker server
+Run app
 
-`python BackEnd/TrackerBackEnd.py`
-
-Run Peer
-
-`streamlit run PeerFrontEnd.py`
-
-Run Client
-
-`streamlit run ClientFrontEnd.py`
+`streamlit run app.py`
