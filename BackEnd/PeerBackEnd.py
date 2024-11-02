@@ -56,18 +56,12 @@ class Peer():
                 connectionSocket.send(endChunk.encode('utf-8'))
                 endChunk = int(connectionSocket.recv(1024).decode('utf-8'))
 
-                # print("Sending chunk to client", end='', flush=True)
                 for chunk in range(startChunk, endChunk + 1):
-                    # print('.', end='', flush=True)
-                    # print("Sending chunk:", chunk)
-                    progress_bar(chunk - startChunk + 1,
-                                 endChunk - startChunk + 1)
-                    fileT = open("./BackEnd/" + str(self.local_path) +
-                                 "/Chunk_List/chunk" + str(chunk) + ".txt", "rb")
-                    # print("./BackEnd/" + str(self.local_path) +
-                    #       "/Chunk_List/chunk" + str(chunk) + ".txt")
-                    data = fileT.read(chunk_SIZE)
-                    connectionSocket.sendall(data)
+                    chunk_file_path = os.path.join(
+                        'BackEnd', self.local_path, 'Chunk_List', f"chunk{chunk}.txt")
+                    with open(chunk_file_path, "rb") as fileT:
+                        data = fileT.read(chunk_SIZE)
+                        connectionSocket.sendall(data)
                 print('')
                 connectionSocket.close()
 
@@ -85,8 +79,9 @@ class Peer():
                 break
 
     def file_break(self, file_name):
-        os.system('cmd /c "cd BackEnd/' +
-                  str(self.local_path) + ' & mkdir Chunk_List"')
+        chunk_list_path = os.path.join(
+            'BackEnd', self.local_path, 'Chunk_List')
+        os.makedirs(chunk_list_path, exist_ok=True)
         fileR = open("./BackEnd/" + str(self.local_path) +
                      "/" + str(file_name), "rb")
 

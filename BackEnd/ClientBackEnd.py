@@ -11,8 +11,8 @@ class Client():
     def __init__(self, host, local_path):
         self.host = host
         self.local_path = local_path
-        os.system("cd BackEnd && mkdir " + str(local_path) + " && cd " +
-                  str(local_path) + " && mkdir Chunk_List")
+        chunk_list_path = os.path.join('BackEnd', local_path, 'Chunk_List')
+        os.makedirs(chunk_list_path, exist_ok=True)
 
     def get_peers_with_file(self, tracker_url, file_name):
         response = requests.get(tracker_url + '/peers',

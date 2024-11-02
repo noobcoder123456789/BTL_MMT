@@ -39,7 +39,9 @@ class MyClient(Client):
         for chunk in range(startChunk, endChunk + 1):
             data = recv_all(clientSocket, chunk_SIZE)
             # Save the chunk
-            file_path = f"./BackEnd/{self.local_path}/Chunk_List/chunk{chunk}.txt"
+            file_path = os.path.join(
+                'BackEnd', self.local_path, 'Chunk_List', f"chunk{chunk}.txt")
+
             os.makedirs(os.path.dirname(file_path), exist_ok=True)
             with open(file_path, "wb") as fileT:
                 fileT.write(data)
@@ -57,8 +59,9 @@ class MyClient(Client):
         logs = []
         st.text(f"Đang tải {fileName} từ {peerNum} peer")
 
-        os.system(
-            'cmd /c "mkdir Local_Client & cd Local_Client & mkdir Chunk_List"')
+        local_client_chunk_path = os.path.join(
+            'BackEnd', 'Local_Client', 'Chunk_List')
+        os.makedirs(local_client_chunk_path, exist_ok=True)
         chunkForEachPeer = chunkNum // peerNum
 
         startChunk = 0
@@ -187,7 +190,7 @@ elif selected_tab == "Peer":
             peer.start(serverSocket)
 
 with col3:
-    st.header("Your file")
+    st.header("Your Files")
     shared_files = list_shared_files(files_path)
     for file in shared_files:
         st.text(file)
