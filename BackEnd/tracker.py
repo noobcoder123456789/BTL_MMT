@@ -52,5 +52,10 @@ class Tracker():
         return magnet_link
 
     def create_torrent_file(self, torrent_data):
-        torrent_file = bencodepy.encode(torrent_data)
-        return torrent_file
+        torrent_file_content = bencodepy.encode(torrent_data)
+        file_name = torrent_data['hashinfo']['file_name']
+        torrent_file_path = os.path.join(
+            self.torrent_folder, f"{file_name}.torrent")
+        with open(torrent_file_path, 'wb') as f:
+            f.write(torrent_file_content)
+        return torrent_file_path
