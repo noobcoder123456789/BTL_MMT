@@ -90,4 +90,3 @@ class Client():
             fileM.write(byte)
 
         fileM.close()
-        print("Client: Merge all chunk completely")
