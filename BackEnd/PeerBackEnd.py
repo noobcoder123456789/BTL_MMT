@@ -22,12 +22,6 @@ class Peer():
         else:
             print(f"Error registering with tracker: {response.text}")
 
-    def get_peers_count(tracker_url):
-        response = requests.get(tracker_url + '/peers_count')
-        if response.status_code == 200:
-            peer_count = response.json().get('peer_count', 0)
-            return peer_count
-
     def file_break(self, file_name):
         chunk_list_path = os.path.join(
             'BackEnd', self.local_path, 'Chunk_List')
