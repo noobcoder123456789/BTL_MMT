@@ -6,9 +6,11 @@ HCMUTorrent
 
 `pip install -r requirements.txt`
 
-**Configure tracker url**
+**Configure**
 
 Assign the IP address of the tracker to the ***tracker_url*** variable in the BackEnd/Helper.py
+
+Create ***Share_File*** folder in BackEnd folder
 
 **Run tracker**
 
