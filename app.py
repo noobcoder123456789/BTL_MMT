@@ -4,10 +4,10 @@ import streamlit as st
 import threading
 from BackEnd.PeerBackEnd import Peer
 from BackEnd.ClientBackEnd import Client
-from BackEnd.Helper import get_wireless_ipv4, list_shared_files, chunk_SIZE, tracker_url
+from BackEnd.Helper import get_wireless_ipv4, list_shared_files, get_peers_count, chunk_SIZE, tracker_url
 
 # CONSTANT
-peerID = Peer.get_peers_count(tracker_url) + 1
+peerID = get_peers_count(tracker_url) + 1
 port = 12000 + peerID - 1
 files_path = './BackEnd/Share_File'
 
@@ -126,6 +126,10 @@ class MyClient(Client):
         return logs
 
 
+# Init
+my_client = MyClient(str(get_wireless_ipv4()), "Local_Client")
+peer = MyPeer(str(get_wireless_ipv4()), port, peerID, "Share_File")
+
 # UI
 
 st.set_page_config(layout="wide", page_title="HCMUTorrent")
@@ -133,12 +137,11 @@ st.set_page_config(layout="wide", page_title="HCMUTorrent")
 selected_tab = st.radio("", ["Client", "Peer"], horizontal=True)
 
 col1, col2, col3 = st.columns([1, 1, 1])
+upload = False
 
 if selected_tab == "Client":
     with col1:
         st.header("Download")
-
-        my_client = MyClient(str(get_wireless_ipv4()), "Local_Client")
 
         placeholder = st.empty()
         message_placeholder = st.empty()
@@ -198,7 +201,6 @@ elif selected_tab == "Peer":
                         continue
                     with open(file_path, "wb") as fileUp:
                         fileUp.write(uploaded_file.read())
-                upload = True
                 st.success("Tải file thành công")
             else:
                 st.error(
@@ -215,7 +217,6 @@ elif selected_tab == "Peer":
                 st.session_state.upload = False
 
         if st.session_state.upload:
-            peer = MyPeer(str(get_wireless_ipv4()), port, peerID, "Share_File")
             st.text("Tham gia vào mạng...")
 
             current_files = [file for file in os.listdir(
