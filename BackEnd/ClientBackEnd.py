@@ -2,8 +2,7 @@ import os
 import bencodepy
 import requests
 from urllib.parse import urlparse, parse_qs
-
-chunk_SIZE = 512 * 1024
+from BackEnd.Helper import chunk_SIZE
 
 
 class Client():
