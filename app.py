@@ -123,11 +123,15 @@ class MyClient(Client):
             thread.join()
 
         self.file_make(fileName)
+        os.system('cmd /c "cd BackEnd/Share_File & rmdir /s /q Chunk_List"')
         return logs
 
 
 # Init
-my_client = MyClient(str(get_wireless_ipv4()), "Local_Client")
+share_file_path = os.path.join('BackEnd', 'Share_File')
+os.makedirs(share_file_path, exist_ok=True)
+
+my_client = MyClient(str(get_wireless_ipv4()), "Share_File")
 peer = MyPeer(str(get_wireless_ipv4()), port, peerID, "Share_File")
 
 # UI
@@ -207,34 +211,32 @@ elif selected_tab == "Peer":
                     "Hãy chọn file để tải lên")
 
     with col2:
-        if 'upload' not in st.session_state:
-            st.session_state.upload = False
+        running = st.checkbox("Bắt đầu chia sẻ tài liệu")
+        if running:
+            if list_shared_files(files_path):
+                st.text("Tham gia vào mạng...")
 
-        if submit_button:
-            if uploaded_files:
-                st.session_state.upload = True
+                current_files = [file for file in os.listdir(
+                    files_path) if os.path.isfile(os.path.join(files_path, file))]
+                peer.announce_to_tracker(tracker_url, current_files)
+                st.text("Đang đợi kết nối...")
+
+                serverSocket = socket.socket(
+                    socket.AF_INET, socket.SOCK_STREAM)
+                serverSocket.bind(("", port))
+                serverSocket.listen(20)
+                connectionSocket, addr = serverSocket.accept()
+                st.write(f"Đã kết nối đến {addr[0]}")
+                fileName = connectionSocket.recv(1024).decode('utf-8')
+                st.text(f"File được yêu cầu gửi: {fileName}")
+                peer.file_break(fileName)
+                peer.start(serverSocket)
+                st.text("Gửi file thành công")
+                st.text("Đóng kết nối TCP")
             else:
-                st.session_state.upload = False
-
-        if st.session_state.upload:
-            st.text("Tham gia vào mạng...")
-
-            current_files = [file for file in os.listdir(
-                files_path) if os.path.isfile(os.path.join(files_path, file))]
-            peer.announce_to_tracker(tracker_url, current_files)
-            st.text("Đang đợi kết nối...")
-
-            serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            serverSocket.bind(("", port))
-            serverSocket.listen(20)
-            connectionSocket, addr = serverSocket.accept()
-            st.write(f"Đã kết nối đến {addr[0]}")
-            fileName = connectionSocket.recv(1024).decode('utf-8')
-            st.text(f"File được yêu cầu gửi: {fileName}")
-            peer.file_break(fileName)
-            peer.start(serverSocket)
-            st.text("Gửi file thành công")
-            st.text("Đóng kết nối TCP")
+                st.warning("Không có tài liệu để chia sẻ")
+        else:
+            st.warning("Đang không tham gia vào mạng")
 
 with col3:
     st.header("Your Files")

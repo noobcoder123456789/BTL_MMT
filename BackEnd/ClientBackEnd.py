@@ -88,4 +88,6 @@ class Client():
             byte = fileT.read(chunk_SIZE)
             fileM.write(byte)
 
+        
+
         fileM.close()
