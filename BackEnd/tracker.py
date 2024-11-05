@@ -14,9 +14,7 @@ class Tracker():
         os.makedirs(self.upload_folder, exist_ok=True)
         os.makedirs(self.torrent_folder, exist_ok=True)
 
-    def create_torrent_data(self, file_name):
-        file_path = os.path.join(self.upload_folder, file_name)
-        file_size = os.path.getsize(file_path)
+    def create_torrent_data(self, file_name, file_size):
         num_chunks = calculate_number_of_chunk(file_size)
         torrent_data = {
             'announce': self.tracker_url.encode('utf-8'),

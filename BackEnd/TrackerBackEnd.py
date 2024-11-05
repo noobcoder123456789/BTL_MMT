@@ -17,10 +17,12 @@ def announce():
     files = data.get('files')
 
     for file in files:
-        torrent_data = MyTracker.create_torrent_data(file)
+        file_name = file["file_name"]
+        file_size = file["file_size"]
+        torrent_data = MyTracker.create_torrent_data(file_name, file_size)
         magnet_link = MyTracker.create_magnet_link(torrent_data)
         MyTracker.create_torrent_file(torrent_data)
-        files_download[file] = {
+        files_download[file_name] = {
             'magnet_link': magnet_link
         }
 
@@ -34,9 +36,14 @@ def announce():
 def get_peers():
     file_name = request.args.get('file')
     if file_name:
-        matching_peers = [{'ip': ip, 'port': peer_info['port']}
-                          for ip, peer_info in peers.items()
-                          if file_name in peer_info['files']]
+        matching_peers = []
+        for ip, peer_info in peers.items():
+            for file in peer_info['files']:
+                if file['file_name'] == file_name:
+                    matching_peers.append(
+                        {'ip': ip, 'port': peer_info['port']})
+                    break
+
         return jsonify({"peers": matching_peers}), 200
     return jsonify({"error": "File not specified"}), 400
 

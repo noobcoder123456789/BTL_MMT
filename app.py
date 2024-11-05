@@ -199,6 +199,7 @@ elif selected_tab == "Peer":
             if uploaded_files:
                 for uploaded_file in uploaded_files:
                     file_path = os.path.join(files_path, uploaded_file.name)
+                    file_size = uploaded_file.size
                     if os.path.exists(file_path):
                         st.warning(
                             f"{uploaded_file.name} đã tồn tại")
@@ -215,9 +216,10 @@ elif selected_tab == "Peer":
         if running:
             if list_shared_files(files_path):
                 st.text("Tham gia vào mạng...")
-
-                current_files = [file for file in os.listdir(
-                    files_path) if os.path.isfile(os.path.join(files_path, file))]
+                current_files = [{
+                    'file_name': file,
+                    'file_size': os.path.getsize(os.path.join(files_path, file)) 
+                } for file in os.listdir(files_path) if os.path.isfile(os.path.join(files_path, file))]
                 peer.announce_to_tracker(tracker_url, current_files)
                 st.text("Đang đợi kết nối...")
 
