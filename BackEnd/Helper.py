@@ -20,7 +20,6 @@ tracker_url = "http://192.168.179.17:18000"
 
 def get_wireless_ipv4():
     for interface, addrs in psutil.net_if_addrs().items():
-        # Check for common wireless interface names across platforms
         if any(wireless in interface.lower() for wireless in ["wi-fi", "wireless", "wlan", "en0", "airport"]):
             for addr in addrs:
                 if addr.family == socket.AF_INET:

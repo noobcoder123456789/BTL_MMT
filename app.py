@@ -101,9 +101,9 @@ class MyClient(Client):
         logs = []
         st.text(f"Đang tải {fileName} từ {peerNum} peer")
 
-        local_client_chunk_path = os.path.join(
-            'BackEnd', 'Local_Client', 'Chunk_List')
-        os.makedirs(local_client_chunk_path, exist_ok=True)
+        share_file_chunk_path = os.path.join(
+            'BackEnd', 'Share_File', 'Chunk_List')
+        os.makedirs(share_file_chunk_path, exist_ok=True)
         chunkForEachPeer = chunkNum // peerNum
 
         startChunk = 0
@@ -132,7 +132,7 @@ share_file_path = os.path.join('BackEnd', 'Share_File')
 os.makedirs(share_file_path, exist_ok=True)
 
 my_client = MyClient(str(get_wireless_ipv4()), "Share_File")
-peer = MyPeer(str(get_wireless_ipv4()), port, peerID, "Share_File")
+# peer = MyPeer(str(get_wireless_ipv4()), port, peerID, "Share_File")
 
 # UI
 
@@ -216,10 +216,13 @@ elif selected_tab == "Peer":
         if running:
             if list_shared_files(files_path):
                 st.text("Tham gia vào mạng...")
+                port += 1
                 current_files = [{
                     'file_name': file,
                     'file_size': os.path.getsize(os.path.join(files_path, file))
                 } for file in os.listdir(files_path) if os.path.isfile(os.path.join(files_path, file))]
+                peer = MyPeer(str(get_wireless_ipv4()),
+                              port, peerID, "Share_File")
                 peer.announce_to_tracker(tracker_url, current_files)
                 st.text("Đang đợi kết nối...")
 
