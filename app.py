@@ -4,7 +4,7 @@ import streamlit as st
 import threading
 from BackEnd.PeerBackEnd import Peer
 from BackEnd.ClientBackEnd import Client
-from BackEnd.Helper import get_wireless_ipv4, list_shared_files, get_peers_count, chunk_SIZE, tracker_url
+from BackEnd.Helper import get_wireless_ipv4, list_shared_files, get_peers_count, remove_chunk_list, chunk_SIZE, tracker_url
 
 # CONSTANT
 peerID = get_peers_count(tracker_url) + 1
@@ -53,7 +53,7 @@ class MyPeer(Peer):
             target=self.Server, args=(serverSocket,))
         thread.start()
         thread.join()
-        os.system('cmd /c "cd BackEnd/Share_File & rmdir /s /q Chunk_List"')
+        remove_chunk_list()
 
 
 class MyClient(Client):
@@ -123,7 +123,7 @@ class MyClient(Client):
             thread.join()
 
         self.file_make(fileName)
-        os.system('cmd /c "cd BackEnd/Share_File & rmdir /s /q Chunk_List"')
+        remove_chunk_list()
         return logs
 
 
@@ -218,7 +218,7 @@ elif selected_tab == "Peer":
                 st.text("Tham gia vào mạng...")
                 current_files = [{
                     'file_name': file,
-                    'file_size': os.path.getsize(os.path.join(files_path, file)) 
+                    'file_size': os.path.getsize(os.path.join(files_path, file))
                 } for file in os.listdir(files_path) if os.path.isfile(os.path.join(files_path, file))]
                 peer.announce_to_tracker(tracker_url, current_files)
                 st.text("Đang đợi kết nối...")

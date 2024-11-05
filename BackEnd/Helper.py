@@ -3,6 +3,7 @@ import socket
 import os
 import math
 import requests
+import platform
 
 chunk_SIZE = 512 * 1024
 tracker_url = "http://192.168.179.17:18000"
@@ -30,3 +31,9 @@ def get_peers_count(tracker_url):
     if response.status_code == 200:
         peer_count = response.json().get('peer_count', 0)
         return peer_count
+
+def remove_chunk_list():
+    if platform.system() == "Windows":
+        os.system('cmd /c "cd BackEnd/Share_File & rmdir /s /q Chunk_List"')
+    else:
+        os.system('rm -rf BackEnd/Share_File/Chunk_List')
