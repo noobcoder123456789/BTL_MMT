@@ -3,14 +3,24 @@ import socket
 import os
 import math
 import requests
+import platform
 
 chunk_SIZE = 512 * 1024
-tracker_url = "http://10.130.124.6:18000"
+tracker_url = "http://192.168.179.17:18000"
+
+
+# def get_wireless_ipv4():
+#     for interface, addrs in psutil.net_if_addrs().items():
+#         if "Wi-Fi" in interface or "Wireless" in interface or "wlan" in interface:
+#             for addr in addrs:
+#                 if addr.family == socket.AF_INET:
+#                     return addr.address
+#     return None
 
 
 def get_wireless_ipv4():
     for interface, addrs in psutil.net_if_addrs().items():
-        if "Wi-Fi" in interface or "Wireless" in interface or "wlan" in interface:
+        if any(wireless in interface.lower() for wireless in ["wi-fi", "wireless", "wlan", "en0", "airport"]):
             for addr in addrs:
                 if addr.family == socket.AF_INET:
                     return addr.address
@@ -30,3 +40,10 @@ def get_peers_count(tracker_url):
     if response.status_code == 200:
         peer_count = response.json().get('peer_count', 0)
         return peer_count
+
+
+def remove_chunk_list():
+    if platform.system() == "Windows":
+        os.system('cmd /c "cd BackEnd/Share_File & rmdir /s /q Chunk_List"')
+    else:
+        os.system('rm -rf BackEnd/Share_File/Chunk_List')
